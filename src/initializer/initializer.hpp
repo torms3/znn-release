@@ -34,11 +34,43 @@ public:
 
 }; // abstract class initializer
 
+// for generating thread-safe uniform[0,1] random numbers
+struct zero_one_generator_impl
+{
+private:
+  	typedef boost::uniform_real<> uniform_dist;
+	typedef boost::variate_generator<boost::mt19937&, uniform_dist> generator;
+
+    boost::mt19937 rng_;
+    uniform_dist   dis_;
+    generator      gen_;
+
+    zi::mutex      m_;
+
+public:
+	zero_one_generator_impl()
+		: rng_()
+		, dis_(0,1)
+		, gen_(rng_, dis_)
+	{}
+
+	double rand()
+	{
+		zi::mutex::guard g(m_);
+		return gen_();
+	}
+}; // struct zero_one_generator_impl
+
 typedef boost::shared_ptr<initializer> initializer_ptr;
 
 // global random number generator
 namespace {
 boost::mt19937 rng = boost::mt19937(time(0));
+} // anonymous namespace
+
+// global thread-safe unit uniform random number generator
+namespace {
+zero_one_generator_impl& zer_one_generator = zi::singleton<zero_one_generator_impl>::instance();
 } // anonymous namespace
 
 }} // namespace zi::znn
