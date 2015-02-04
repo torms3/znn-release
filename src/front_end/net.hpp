@@ -161,6 +161,14 @@ public:
 		}
 	}
 
+	void set_inference( bool b )
+	{
+		FOR_EACH( it, nodes_ )
+		{
+			(*it)->set_inference(b);
+		}
+	}
+
 
 public:
 	void add_node_group( node_group_ptr g )

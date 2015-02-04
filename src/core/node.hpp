@@ -263,6 +263,9 @@ private:
 
     // Dropout rate
     double p_;
+
+    // Dropout mask
+    bool3d_ptr mask_;
     
 public:
     node(const std::string& name, double bias = 0.01, double eta = 0.0001,
@@ -303,7 +306,8 @@ public:
         , szB_(szB)
         , dropout_(false)
         , inference_(false)
-        , p_(0.0)
+        , p_(0.5)
+        , mask_()
     {
         real_filter_size_ = (filter_size_-vec3i::one)*sparse_+vec3i::one;
     }
@@ -894,9 +898,11 @@ private:
         }
 
         // Dropout
-        if ( dropout_ )
+        if ( dropout_ && !inference_ )
         {
-
+            // 1. draw a new dropout mask 
+            // 2. apply it to the activation
+            mask_ = volume_utils::dropout(f_, p_);
         }
         
         ZI_ASSERT((in_received_==0)&&(out_received_==0));
@@ -929,6 +935,14 @@ private:
     {
         ZI_ASSERT((in_received_==0)&&(out_received_==0));
         ++pass_no_;
+
+        // Dropout
+        if ( dropout_ && !inference_ )
+        {
+            double scale = static_cast<double>(1)/(static_cast<double>(1) - p_);            
+            volume_utils::elementwise_masking(dEdX_, mask_);
+            volume_utils::elementwise_mul_by(dEdX_, scale);
+        }
 
         dEdX_ = error_fn_->gradient(dEdX_, f_);
 

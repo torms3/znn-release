@@ -24,6 +24,7 @@
 #include "utils.hpp"
 #include "measure.hpp"
 #include "volume_pool.hpp"
+#include "../initializer/initializer.hpp"
 
 #include <zi/parallel/numeric.hpp>
 #include <zi/parallel/algorithm.hpp>
@@ -1550,6 +1551,33 @@ multinomial_rebalance_mask( std::list<double3d_ptr> lbls )
         {
             double w = weights[idx++]/sum;
             volume_utils::mul_add_to(w,*it,ret);
+        }
+    }
+
+    return ret;
+}
+
+// dropout
+inline bool3d_ptr dropout(double3d_ptr a, double p = 0.5 )
+{
+    vec3i sz = size_of(a);
+    bool3d_ptr ret = volume_pool.get_bool3d(sz);
+    double scale = static_cast<double>(1)/(static_cast<double>(1) - p);
+
+    std::size_t n = a->num_elements();
+    for ( std::size_t i = 0; i < n; ++i )
+    {
+        // dropout
+        if ( zero_one_generator.rand() < p )
+        {
+            a->data()[i]    = 0;
+            ret->data()[i]  = false;
+
+        }
+        else
+        {
+            a->data()[i]   *= scale;
+            ret->data()[i]  = true;
         }
     }
 
