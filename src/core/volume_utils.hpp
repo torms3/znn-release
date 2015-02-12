@@ -1570,7 +1570,7 @@ inline bool3d_ptr dropout(double3d_ptr a, double p = 0.5 )
         // dropout
         if ( zero_one_generator.rand() < p )
         {
-            a->data()[i]    = 0;
+            a->data()[i]    = static_cast<double>(0);
             ret->data()[i]  = false;
 
         }
