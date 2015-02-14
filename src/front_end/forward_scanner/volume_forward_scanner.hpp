@@ -21,6 +21,7 @@
 
 #include "forward_scanner.hpp"
 #include "../data_spec/rw_volume_data.hpp"
+#include "../feature_maps/feature_map_scanner.hpp"
 
 #include <string>
 
@@ -33,17 +34,21 @@ private:
 	std::list<dvolume_data_ptr>		imgs_;
 	std::list<rw_dvolume_data_ptr>	outs_;
 
-	std::vector<vec3i>				in_szs_;
+	std::vector<vec3i>				in_szs_	;
 	std::vector<vec3i>				out_szs_;
-	std::vector<vec3i>				FoVs_;
+	std::vector<vec3i>				FoVs_	;
 
 	box								range_;
 
 	vec3i							scan_offset_;
-	vec3i							scan_step_;
-	vec3i							scan_dim_;
-	std::list<vec3i>				scan_locs_;
-	std::list<vec3i>				wait_queue_;
+	vec3i							scan_step_	;
+	vec3i							scan_dim_	;	
+	std::list<vec3i>				scan_locs_	;
+	vec3i							scan_uc_	;
+	vec3i							scan_lc_	;
+	std::list<vec3i>				wait_queue_	;
+
+	feature_map_scanner_ptr			fmap_scanner_;
 
 
 protected:
@@ -232,22 +237,22 @@ protected:
 				{
 					scan_locs_.push_back(vec3i(x,y,z));
 				}
+
+		scan_uc_ = scan_offset_;
+		scan_lc_ =  scan_offset_ + (scan_dim_ - vec3i::one)*scan_step_;
+
+		// sanity check
+		STRONG_ASSERT(scan_locs_.front() == scan_uc_);
+		STRONG_ASSERT(scan_locs_.back()  == scan_lc_);
 	}
 
 	void prepare_outputs()
 	{
-		vec3i uc = scan_offset_;
-		vec3i lc = uc + (scan_dim_ - vec3i::one)*scan_step_;
-
-		// [08/19/2014] temporary sanity check
-		STRONG_ASSERT(scan_locs_.front() == uc);
-		STRONG_ASSERT(scan_locs_.back()  == lc);
-
 		FOR_EACH( it, out_szs_ )
 		{
 			vec3i out_sz = *it;
-			box a = box::centered_box(uc,out_sz);
-			box b = box::centered_box(lc,out_sz);
+			box a = box::centered_box(scan_uc_,out_sz);
+			box b = box::centered_box(scan_lc_,out_sz);
 			add_output(a + b);
 		}
 	}
@@ -274,7 +279,7 @@ private:
 		vec3i offset = range.upper_corner();
 		vec3i FoV = out_szs_[idx];
 		rw_dvolume_data_ptr out =
-			rw_dvolume_data_ptr(new rw_dvolume_data(vol,FoV,offset));		
+			rw_dvolume_data_ptr(new rw_dvolume_data(vol,FoV,offset));
 		outs_.push_back(out);
 
 		std::cout << "<add_output()>" << std::endl;
@@ -325,7 +330,7 @@ public:
 		STRONG_ASSERT(wait_queue_.size() == 1);
 		STRONG_ASSERT(outs_.size() == outputs.size());
 
-		vec3i loc = wait_queue_.front();		
+		vec3i loc = wait_queue_.front();
 		wait_queue_.pop_front();
 
 		std::list<rw_dvolume_data_ptr>::iterator oit = outs_.begin();
@@ -333,6 +338,9 @@ public:
 		{
 			(*oit++)->set_patch(loc,*it);
 		}
+
+		// feature maps
+		if ( fmap_scanner_ ) fmap_scanner_->scan(loc);
 	}
 
 	virtual void save( const std::string& fpath ) const
@@ -347,6 +355,20 @@ public:
 			volume_utils::save(out,fname);
 			export_size_info(size_of(out),fname);
 		}
+	}
+
+
+public:
+	void set_feature_map_scanner(net_ptr net)
+	{
+		fmap_scanner_ = feature_map_scanner_ptr(new
+			feature_map_scanner(net, scan_uc_, scan_lc_));
+	}
+
+	void save_feature_maps(const std::string& fpath) const
+	{
+		if ( fmap_scanner_ )
+			fmap_scanner_->save(fpath);
 	}
 
 
@@ -370,7 +392,7 @@ private:
 
 
 public:	
-	volume_forward_scanner( const std::string& load_path,							
+	volume_forward_scanner( const std::string& load_path,
 						    std::vector<vec3i> in_szs,
 						    std::vector<vec3i> out_szs,
 						    vec3i off,

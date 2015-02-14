@@ -27,12 +27,17 @@ namespace znn {
 class forward_scanner
 {
 protected:
-	virtual void load( const std::string& fname ) = 0;
+	virtual void load(const std::string& fname) 		= 0;
 
 public:
-	virtual bool pull( std::list<double3d_ptr>& inputs ) = 0;
-	virtual void push( std::list<double3d_ptr>& outputs ) = 0;	
-	virtual void save( const std::string& fpath ) const = 0;
+	virtual bool pull(std::list<double3d_ptr>& inputs) 	= 0;
+	virtual void push(std::list<double3d_ptr>& outputs) = 0;	
+	virtual void save(const std::string& fpath) const 	= 0;
+
+// feature map scanner
+public:
+	virtual void set_feature_map_scanner(net_ptr net)				= 0;
+	virtual void save_feature_maps(const std::string& fpath) const 	= 0;
 
 }; // abstract class forward_scanner
 
