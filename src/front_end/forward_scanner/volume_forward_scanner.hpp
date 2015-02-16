@@ -31,6 +31,9 @@ namespace znn {
 class volume_forward_scanner : virtual public forward_scanner
 {
 private:
+	typedef std::set<std::size_t> 	scan_coord;
+
+private:
 	std::list<dvolume_data_ptr>		imgs_;
 	std::list<rw_dvolume_data_ptr>	outs_;
 
@@ -42,8 +45,9 @@ private:
 
 	vec3i							scan_offset_;
 	vec3i							scan_step_	;
-	vec3i							scan_dim_	;
-	std::list<vec3i>				scan_locs_	;
+	vec3i							scan_dim_	;				
+	std::vector<scan_coord>			scan_coords_;
+	std::set<vec3i>					scan_locs_	;
 	vec3i							scan_uc_	;
 	vec3i							scan_lc_	;
 	std::list<vec3i>				wait_queue_	;
@@ -76,7 +80,7 @@ protected:
 		// updating range should precede anything else
 		update_range();
 
-		// the setting order below should be strictly followed
+		// the below setting order should be strictly followed
 		set_scanning_offset();
 		set_scanning_dimensions();
 		set_scanning_locations();
@@ -122,7 +126,7 @@ protected:
     	std::cout << "offset = " << offset << std::endl;
 
     	std::list<dvolume_data_ptr>	mimgs;
-    	std::vector<vec3i>::iterator fov = FoVs_.begin();
+    	std::vector<vec3i>::iterator fov  = FoVs_.begin();
     	std::vector<vec3i>::iterator insz = in_szs_.begin();
 		FOR_EACH( it, imgs_ )
 		{
@@ -207,11 +211,23 @@ protected:
 		vec3i uc = scan_offset_;
 		vec3i lc = range_.lower_corner() - vec3i::one;
 
+		// automated full span scanning
 		if ( scan_dim_[dim] == 0 )
 		{
 			scan_dim_[dim] = (lc[dim]-uc[dim])/scan_step_[dim] + 1;
 			STRONG_ASSERT(scan_dim_[dim] > 0);
+
+			// offcut solver
+			scan_coords_[dim].insert(lc[dim]);
 		}
+
+		// scan coordinates
+		std::size_t loc = scan_offset_[dim];
+		for ( std::size_t ix = 0; ix < scan_dim_[dim]; ++ix )
+		{
+			scan_coords_[dim].insert(loc);
+			loc += scan_step_[dim];
+		}		
 		
 		// sanity check
 		STRONG_ASSERT((uc[dim] + (scan_dim_[dim]-1)*scan_step_[dim]) <= lc[dim]);
@@ -219,31 +235,19 @@ protected:
 
 	void set_scanning_locations()
 	{
-		std::size_t bx = scan_offset_[0];
-		std::size_t by = scan_offset_[1];
-		std::size_t bz = scan_offset_[2];		
-
-		std::size_t sx = scan_step_[0];
-		std::size_t sy = scan_step_[1];
-		std::size_t sz = scan_step_[2];
-
-		std::size_t x = bx;
-		std::size_t y = by;
-		std::size_t z = bz;
-
-		for ( std::size_t ix = 0; ix < scan_dim_[0]; ++ix, x += sx, y = by )
-			for ( std::size_t iy = 0; iy < scan_dim_[1]; ++iy, y += sy, z = bz )
-				for ( std::size_t iz = 0; iz < scan_dim_[2]; ++iz, z += sz )
+		FOR_EACH( x, scan_coords_[0] )
+		{
+			FOR_EACH( y, scan_coords_[1] )
+			{
+				FOR_EACH( z, scan_coords_[2] )
 				{
-					scan_locs_.push_back(vec3i(x,y,z));
+					scan_locs_.insert(vec3i(*x,*y,*z));	
 				}
+			}
+		}
 
-		scan_uc_ = scan_offset_;
-		scan_lc_ =  scan_offset_ + (scan_dim_ - vec3i::one)*scan_step_;
-
-		// sanity check
-		STRONG_ASSERT(scan_locs_.front() == scan_uc_);
-		STRONG_ASSERT(scan_locs_.back()  == scan_lc_);
+		scan_uc_ = *scan_locs_.begin();
+		scan_lc_ = *scan_locs_.rbegin();
 	}
 
 	void prepare_outputs()
@@ -309,8 +313,8 @@ public:
 
 		if ( scan_locs_.size() > 0 )
 		{
-			vec3i loc = scan_locs_.front();
-			scan_locs_.pop_front();
+			vec3i loc = *scan_locs_.begin();
+			scan_locs_.erase(scan_locs_.begin());
 			wait_queue_.push_back(loc);
 			
 			inputs.clear();
@@ -403,6 +407,9 @@ public:
 		, scan_offset_(off)
 		, scan_dim_(dim)
 	{
+		// for each x, y, z dims
+		scan_coords_.reserve(3);
+
 		set_FoVs();
 		load(load_path);
 		init(mirroring);
