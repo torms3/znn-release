@@ -37,23 +37,9 @@ private:
 
 
 public:
-	void initialize()
-	{
-		// traverse net
-		FOR_EACH( it, net_->nodes_ )
-		{
-			// skip input and output nodes
-			if ( (*it)->count_in_edges()  == 0 ||
-				 (*it)->count_out_edges() == 0 )
-				continue;
-
-			add_feature_map(*it);
-		}
-	}
-
 	void scan(vec3i loc)
 	{
-		// traverse net
+		// traverse every node
 		FOR_EACH( it, net_->nodes_ )
 		{
 			// skip input and output nodes
@@ -61,13 +47,13 @@ public:
 				 (*it)->count_out_edges() == 0 )
 				continue;
 
-			push_feature_map(*it, loc);
+			push_feature_map(loc, *it);
 		}
 	}
 
 	void save(const std::string& fpath)
 	{
-		// traverse net
+		// traverse every node
 		FOR_EACH( it, net_->nodes_ )
 		{
 			// skip input and output nodes
@@ -80,6 +66,35 @@ public:
 	}
 
 private:
+	void push_feature_map(vec3i loc, node_ptr nd)
+	{
+		fmaps_[nd->get_name()]->set_patch(loc, nd->get_activation());
+	}
+
+	void save_feature_map(const std::string& fpath, const std::string& name)
+	{
+		std::string fname = fpath + name;
+		double3d_ptr fmap = fmaps_[name]->get_volume();
+		volume_utils::save(fmap,fname);
+		export_size_info(size_of(fmap),fname);
+	}
+
+
+private:
+	void initialize()
+	{
+		// traverse every node
+		FOR_EACH( it, net_->nodes_ )
+		{
+			// skip input and output nodes
+			if ( (*it)->count_in_edges()  == 0 ||
+				 (*it)->count_out_edges() == 0 )
+				continue;
+
+			add_feature_map(*it);
+		}
+	}
+
 	void add_feature_map(node_ptr nd)
 	{
 		vec3i sz = nd->get_filtered_size();
@@ -93,19 +108,6 @@ private:
 		rw_dvolume_data* fmap  = new rw_dvolume_data(vol,FoV,offset);
 
 		fmaps_[nd->get_name()] = rw_dvolume_data_ptr(fmap);
-	}
-
-	void push_feature_map(node_ptr nd, vec3i loc)
-	{
-		fmaps_[nd->get_name()]->set_patch(loc, nd->get_activation());
-	}
-
-	void save_feature_map(const std::string& fpath, const std::string& name)
-	{
-		std::string fname = fpath + name;
-		double3d_ptr fmap = fmaps_[name]->get_volume();
-		volume_utils::save(fmap,fname);
-		export_size_info(size_of(fmap),fname);
 	}
 
 

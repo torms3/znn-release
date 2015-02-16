@@ -42,7 +42,7 @@ private:
 
 	vec3i							scan_offset_;
 	vec3i							scan_step_	;
-	vec3i							scan_dim_	;	
+	vec3i							scan_dim_	;
 	std::list<vec3i>				scan_locs_	;
 	vec3i							scan_uc_	;
 	vec3i							scan_lc_	;
