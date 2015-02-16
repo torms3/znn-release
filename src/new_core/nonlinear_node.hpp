@@ -120,8 +120,8 @@ public:
         }
     }
 
-protected:
-    virtual void update_bias()
+private:
+    void update_bias()
     {
         dEdB_ = volume_utils::sum_all(data_.dEdX);
 

@@ -42,7 +42,7 @@ protected: // parameter
     double          eta_   ;    // learning rate parameter
     double          mom_   ;    // momentum parameter
     double          wc_    ;    // L1 weight decay
-    double          szB_   ;    // minibatch
+    double          szB_   ;    // minibatch size
 
 
 public:
@@ -160,7 +160,7 @@ public:
         // updated L2 norm
         norm_ = volume_utils::square_sum(W_);
 
-        // FFT
+        // FFT(W)
         fft_.reset();
         if ( in_->sends_fft() && out_->receives_fft() )
         {
@@ -303,12 +303,12 @@ private:
 			if ( sparse_ == vec3i::one )
 			{
 				dEdW_ = bf_conv_flipped(in_->data().f, dEdX);
-                grad = bf_conv_inverse(dEdX, W_);
+                grad  = bf_conv_inverse(dEdX, W_);
 			}
 			else
 			{
 				dEdW_ = bf_conv_flipped_sparse(in_->data().f, dEdX, sparse_);
-                grad = bf_conv_inverse_sparse(dEdX, W_, sparse_);
+                grad  = bf_conv_inverse_sparse(dEdX, W_, sparse_);
 			}
 		}
 

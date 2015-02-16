@@ -244,7 +244,7 @@ protected:
         return pass_no_;
     }
 
-protected:
+private:
     void forward_edge(base_edge_ptr e)
     {
         e->forward();
