@@ -28,6 +28,7 @@
 #include "../front_end/net_builder.hpp"
 #include "../front_end/forward_scanner/forward_scanners.hpp"
 #include "../front_end/options.hpp"
+#include "../new_core/task_manager.hpp"
 
 #include <zi/concurrency.hpp>
 #include <zi/utility/assert.hpp>
@@ -49,8 +50,6 @@ class network
 {
 private:    
     net_ptr net_;
-    
-    zi::task_manager::prioritized tm_;
 
     std::size_t lastn_;
 
@@ -566,8 +565,7 @@ private:
 
 public:
     network( options_ptr _op )
-        : net_(new net)        
-        , tm_(_op->n_threads)
+        : net_(new net)
         , lastn_(0)
         , inputs_()
         , op(_op)
@@ -583,16 +581,14 @@ public:
             throw std::invalid_argument(what);
         }
 
-        tm_.start();
+        task_manager(_op->n_threads);
+        task_manager().start();
 
         // time seed for rand()
         srand(time(NULL));
     }
 
-    ~network()
-    {
-        tm_.join();
-    }
+    ~network() {}
 
     // will run the forward pass and will return the computed guess
     std::list<double3d_ptr> run_forward(std::list<double3d_ptr> inputs)
@@ -600,7 +596,7 @@ public:
         std::list<double3d_ptr>::iterator iit = inputs.begin();
         FOR_EACH( it, net_->inputs_ )
         {
-            lastn_ = (*it)->run_forward(*iit++, &tm_);
+            lastn_ = (*it)->run_forward(*iit++);
         }
 
         // this is where we wait for the last thread to finish
@@ -668,7 +664,7 @@ public:
         std::list<double3d_ptr>::iterator git = grads.begin();
         FOR_EACH( it, net_->outputs_ )
         {            
-            lastn_ = (*it)->run_backward(*git++,&tm_);
+            lastn_ = (*it)->run_backward(*git++);
         }
 
         // this is where we wait for the last thread to finish

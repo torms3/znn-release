@@ -28,6 +28,7 @@
 #include "fftw.hpp"
 #include "generic_filter.hpp"
 #include "../error_fn/error_fns.hpp"
+#include "../new_core/task_manager.hpp"
 
 #include <stdexcept>
 #include <list>
@@ -184,7 +185,6 @@ public:
         return vec3i((size_[0]-1)*sparse_[0]+1,
                      (size_[1]-1)*sparse_[1]+1,
                      (size_[2]-1)*sparse_[2]+1);
-
     }
 
     friend class node;
@@ -244,7 +244,7 @@ private:
     friend class edge;
 
     std::size_t layer_no_;
-    std::size_t neuron_no_;    
+    std::size_t neuron_no_;
 
     vec3i filter_size_;
     vec3i sparse_     ;
@@ -254,7 +254,7 @@ private:
 
     double mom_;
     double v_  ;
-    double wc_ ;    
+    double wc_ ;
     double szB_;
     
 public:
@@ -517,8 +517,7 @@ public:
     }
 
 private:
-    template<class Manager>
-    void forward_edge(edge_ptr e, Manager task_manager)
+    void forward_edge(edge_ptr e)
     {
         zi::guard g(*e);
         
@@ -529,32 +528,30 @@ private:
             {
                 e->fft_ = fftw::forward_pad(e->W_,out_size());
             }
-            e->out_->template receive_f<Manager>(
-                volume_utils::elementwise_mul(fft_,e->fft_), task_manager);
+            e->out_->receive_f(volume_utils::elementwise_mul(fft_,e->fft_));
         }
         else
         {
             ZI_ASSERT(!e->out_->receives_fft_);
             if ( e->size_ == vec3i::one )
             {
-                e->out_->template receive_f<Manager>(bf_conv_constant(f_, (*e->W_)[0][0][0]), task_manager);
+                e->out_->receive_f(bf_conv_constant(f_, (*e->W_)[0][0][0]));
             }
             else
             {
                 if ( e->sparse_ == vec3i::one )
                 {
-                    e->out_->template receive_f<Manager>(bf_conv(f_, e->W_), task_manager);
+                    e->out_->receive_f(bf_conv(f_, e->W_));
                 }
                 else
                 {
-                    e->out_->template receive_f<Manager>(bf_conv_sparse(f_, e->W_, e->sparse_), task_manager);
+                    e->out_->receive_f(bf_conv_sparse(f_, e->W_, e->sparse_));
                 }
             }
         }
     }
 
-    template<class Manager>
-    void backward_edge(edge_ptr e, Manager task_manager)
+    void backward_edge(edge_ptr e)
     {
         zi::guard g(*e);
         double3d_ptr dEdW;
@@ -577,7 +574,7 @@ private:
             complex3d_ptr grad
                 = volume_utils::elementwise_mul(dEdX_fft_, e->fft_);
 
-            e->in_->template receive_grad<Manager>(grad, task_manager);
+            e->in_->receive_grad(grad);
         }
         else
         {
@@ -588,7 +585,7 @@ private:
                 dEdW = volume_pool.get_double3d(1,1,1);
                 (*dEdW)[0][0][0] = bf_conv_flipped_constant(e->in_->f_, dEdX_);
                 double3d_ptr grad = bf_conv_inverse_constant(dEdX_, (*e->W_)[0][0][0]);
-                e->in_->template receive_grad<Manager>(grad, task_manager);
+                e->in_->receive_grad(grad);
             }
             else
             {                
@@ -596,13 +593,13 @@ private:
                 {
                     dEdW = bf_conv_flipped(e->in_->f_, dEdX_);
                     double3d_ptr grad = bf_conv_inverse(dEdX_, e->W_);
-                    e->in_->template receive_grad<Manager>(grad, task_manager);
+                    e->in_->receive_grad(grad);
                 }
                 else
                 {
                     dEdW = bf_conv_flipped_sparse(e->in_->f_, dEdX_, e->sparse_);
                     double3d_ptr grad = bf_conv_inverse_sparse(dEdX_, e->W_, e->sparse_);
-                    e->in_->template receive_grad<Manager>(grad, task_manager);
+                    e->in_->receive_grad(grad);
                 }
             }
         }
@@ -613,7 +610,7 @@ private:
     void update_edge(edge_ptr e, double3d_ptr dEdW)
     {
         // update weight
-        volume_utils::elementwise_mul_by(e->V_, e->mom_);        
+        volume_utils::elementwise_mul_by(e->V_, e->mom_);
         volume_utils::elementwise_div_by(dEdW, szB_);
         volume_utils::mul_add_to(-(e->eta_), dEdW, e->V_);
         volume_utils::mul_add_to(-(e->wc_*e->eta_), e->W_, e->V_);
@@ -636,8 +633,7 @@ private:
         }
     }
 
-    template<class Manager>
-    void receive_f(double3d_ptr f, Manager task_manager)
+    void receive_f(double3d_ptr f)
     {
         {
             mutex::guard g(m_);
@@ -653,11 +649,10 @@ private:
                 {
                     double3d_ptr f2;
                     f_.swap(f2);
-                    task_manager->insert(
-                        zi::bind(
-                            &node::template receive_f_sum<Manager>,
-                            this, f, f2, task_manager),
-                        forward_priority());
+                    task_manager().insert(
+                            zi::bind(&node::receive_f_sum, this, f, f2),
+                            forward_priority()
+                        );
                 }
                 else
                 {
@@ -671,20 +666,18 @@ private:
                 in_received_ = 0;
                 ZI_ASSERT(f_);
                 error_fn_->add_apply(bias_,f_);
-                this->template run_forward<Manager>(task_manager);
+                run_forward();
             }
         }
     }
 
-    template<class Manager>
-    void receive_f_sum(double3d_ptr f1, double3d_ptr f2, Manager task_manager)
+    void receive_f_sum(double3d_ptr f1, double3d_ptr f2)
     {
         volume_utils::add_to(f1,f2);
-        receive_f(f2, task_manager);
+        receive_f(f2);
     }
 
-    template<class Manager>
-    void receive_f(complex3d_ptr f, Manager task_manager)
+    void receive_f(complex3d_ptr f)
     {
         {
             mutex::guard g(m_);
@@ -700,10 +693,8 @@ private:
                 {
                     complex3d_ptr f2;
                     fft_.swap(f2);
-                    task_manager->insert(
-                        zi::bind(
-                            &node::template receive_f_csum<Manager>,
-                            this, f, f2, task_manager),
+                    task_manager().insert(
+                        zi::bind(&node::receive_f_csum, this, f, f2),
                         forward_priority());
                 }
                 else
@@ -728,20 +719,18 @@ private:
 
                 error_fn_->add_apply(bias_,f_);
 
-                this->template run_forward<Manager>(task_manager);
+                run_forward();
             }
         }
     }
 
-    template<class Manager>
-    void receive_f_csum(complex3d_ptr f1, complex3d_ptr f2, Manager task_manager)
+    void receive_f_csum(complex3d_ptr f1, complex3d_ptr f2)
     {
         volume_utils::template add_to<complex3d_ptr>(f1,f2);
-        receive_f(f2, task_manager);
+        receive_f(f2);
     }
 
-    template<class Manager>
-    void receive_grad(double3d_ptr grad, Manager task_manager)
+    void receive_grad(double3d_ptr grad)
     {
         {
             mutex::guard g(m_);
@@ -758,10 +747,8 @@ private:
                 {
                     double3d_ptr dEdX2;
                     dEdX_.swap(dEdX2);
-                    task_manager->insert(
-                        zi::bind(
-                            &node::template receive_grad_sum<Manager>,
-                            this, grad, dEdX2, task_manager),
+                    task_manager().insert(
+                        zi::bind(&node::receive_grad_sum, this, grad, dEdX2),
                         backward_priority());
                 }
                 else
@@ -775,20 +762,18 @@ private:
             {
                 out_received_ = 0;
                 ZI_ASSERT(dEdX_);
-                this->template run_backward<Manager>(task_manager);
+                run_backward();
             }
         }
     }
 
-    template<class Manager>
-    void receive_grad_sum(double3d_ptr g1, double3d_ptr g2, Manager task_manager)
+    void receive_grad_sum(double3d_ptr g1, double3d_ptr g2)
     {
         volume_utils::template add_to<double3d_ptr>(g1,g2);
-        receive_grad(g2, task_manager);
+        receive_grad(g2);
     }
 
-    template<class Manager>
-    void receive_grad(complex3d_ptr grad, Manager task_manager)
+    void receive_grad(complex3d_ptr grad)
     {
         {
             mutex::guard g(m_);
@@ -805,10 +790,8 @@ private:
                 {
                     complex3d_ptr dEdX2;
                     dEdX_fft_.swap(dEdX2);
-                    task_manager->insert(
-                        zi::bind(
-                            &node::template receive_grad_csum<Manager>,
-                            this, grad, dEdX2, task_manager),
+                    task_manager().insert(
+                        zi::bind(&node::receive_grad_csum, this, grad, dEdX2),
                         backward_priority());
                 }
                 else
@@ -823,23 +806,21 @@ private:
                 out_received_ = 0;
                 ZI_ASSERT(dEdX_fft_);
                 
-                    dEdX_ = volume_utils::normalize_flip(fftw::backward(dEdX_fft_,
-                                                                        out_size()));
+                dEdX_ = volume_utils::normalize_flip(fftw::backward(dEdX_fft_,
+                                                                    out_size()));
 
-                this->template run_backward<Manager>(task_manager);
+                run_backward();
             }
         }
     }
 
-    template<class Manager>
-    void receive_grad_csum(complex3d_ptr g1, complex3d_ptr g2, Manager task_manager)
+    void receive_grad_csum(complex3d_ptr g1, complex3d_ptr g2)
     {
         volume_utils::template add_to<complex3d_ptr>(g1,g2);
-        receive_grad(g2, task_manager);
+        receive_grad(g2);
     }
 
-    template<class Manager>
-    std::size_t run_forward(Manager task_manager)
+    std::size_t run_forward()
     {
         // do the filtering (currently hard-coded to use max-filtering)
         if ( filter_size_ != vec3i::one )
@@ -863,10 +844,9 @@ private:
 
         FOR_EACH( it, out_edges_ )
         {
-            task_manager->insert(zi::bind(
-                                        &node::template forward_edge<Manager>,
-                                        this, *it, task_manager),
-                                 (*it)->out_->forward_priority());
+            task_manager().insert(
+                zi::bind(&node::forward_edge, this, *it),
+                (*it)->out_->forward_priority());
         }
 
         if ( waiters_ )
@@ -877,9 +857,7 @@ private:
         return pass_no_;
     }
 
-
-    template<class Manager>
-    std::size_t run_backward(Manager task_manager)
+    std::size_t run_backward()
     {
         ZI_ASSERT((in_received_==0)&&(out_received_==0));
         ++pass_no_;
@@ -912,10 +890,9 @@ private:
 
         FOR_EACH(it, in_edges_)
         {
-            task_manager->insert(zi::bind(
-                                        &node::template backward_edge<Manager>,
-                                        this, *it, task_manager),
-                                 (*it)->in_->backward_priority());
+            task_manager().insert(
+                zi::bind(&node::backward_edge, this, *it),
+                (*it)->in_->backward_priority());
         }
 
         if ( waiters_ )
@@ -936,20 +913,18 @@ public:
         in_edges_.push_back(e);
     }
 
-    template<class Manager>
-    std::size_t run_forward(double3d_ptr f, Manager task_manager)
+    std::size_t run_forward(double3d_ptr f)
     {
         mutex::guard g(m_);
         f_ = f;
-        return this->template run_forward<Manager>(task_manager);
+        return run_forward();
     }
 
-    template<class Manager>
-    std::size_t run_backward(double3d_ptr dEdX, Manager task_manager)
+    std::size_t run_backward(double3d_ptr dEdX)
     {
         mutex::guard g(m_);
         dEdX_ = dEdX;
-        return this->template run_backward<Manager>(task_manager);
+        return run_backward();
     }
 
     double3d_ptr wait(std::size_t n)
@@ -985,7 +960,7 @@ public:
     // for normalized initialization
     double fan_in() const
     {
-        double ret = static_cast<double>(1);
+        double ret = static_cast<double>(0);
         if ( count_in_edges() > 0 )
         {
             vec3i sz = in_edges_.front()->size();
@@ -997,7 +972,7 @@ public:
 
     double fan_out() const
     {
-        double ret = static_cast<double>(1);
+        double ret = static_cast<double>(0);
         if ( count_out_edges() > 0 )
         {
             vec3i sz = out_edges_.front()->size();
@@ -1015,32 +990,6 @@ public:
         stream.write( reinterpret_cast<char*>(&bias_), sizeof(double) );
     }
 
-    void print_eta( std::ostream& stream )
-    {
-        stream.write( reinterpret_cast<char*>(&eta_), sizeof(double) );
-    }
-
-    void print_v( std::ostream& stream )
-    {
-        stream.write( reinterpret_cast<char*>(&v_), sizeof(double) );
-    }
-
-    void print_out_edges( std::ostream& stream )
-    {
-        FOR_EACH( it, out_edges_ )
-        {
-            (*it)->print_W(stream); // W
-        }
-    }
-
-    void print_out_nodes( std::ostream& stream )
-    {
-        out_edges_.front()->out_->print_eta(stream);    // eta
-        FOR_EACH( it, out_edges_ )
-        {
-            (*it)->out_->print_bias(stream);            // bias
-        }
-    }
 
 public:
     void sends_fft(bool b)
@@ -1069,16 +1018,6 @@ public:
     bool receives_fft() const
     {
         return receives_fft_;
-    }
-
-    const vec3i& in_size() const
-    {
-        return size_;
-    }
-
-    void print_f() const
-    {
-        volume_utils::print(f_);
     }
 
 }; // class node

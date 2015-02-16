@@ -20,6 +20,12 @@
 #include "front_end/options.hpp"
 #include "core/network.hpp"
 
+#include "new_core/waiter.hpp"
+#include "new_core/conv_edge.hpp"
+#include "new_core/pool_edge.hpp"
+#include "new_core/sum_edge.hpp"
+#include "new_core/nonlinear_node.hpp"
+
 #include <iostream>
 #include <zi/time.hpp>
 #include <zi/zargs/zargs.hpp>

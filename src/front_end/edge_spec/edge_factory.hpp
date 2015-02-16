@@ -193,6 +193,7 @@ private:
 		{
 			double m1 = g->target_->fan_in();
 			double m2 = g->target_->fan_out();
+			STRONG_ASSERT(m1+m2>0.5);
 			double r  = std::sqrt(6)/std::sqrt(m1+m2);
 			ret = initializer_ptr(new Uniform_init(-r,r));
 		}
