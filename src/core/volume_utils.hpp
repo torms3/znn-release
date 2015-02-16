@@ -1556,6 +1556,49 @@ multinomial_rebalance_mask( std::list<double3d_ptr> lbls )
     return ret;
 }
 
+// Maxout: parallel version
+// accumulate maxout results to b
+inline void maxout( double3d_ptr a, long3d_ptr pa, 
+                    double3d_ptr b, long3d_ptr pb )
+{
+    PROFILE_FUNCTION();
+    ASSERT_SAME_SIZE(a,b);
+    ASSERT_SAME_SIZE(a,pa);
+    ASSERT_SAME_SIZE(b,pb);
+
+    std::size_t n = a->num_elements();
+    for ( std::size_t i = 0; i < n; ++i )
+    {
+        if ( a->data()[i] > b->data()[i] )
+        {
+            b->data()[i] = a->data()[i];
+            pb->data()[i] = pa->data()[i];
+        }
+    }
+}
+
+inline double3d_ptr max_backprop( double3d_ptr a,
+                                  long3d_ptr p,
+                                  int64_t idx )
+{
+    PROFILE_FUNCTION();
+    ASSERT_SAME_SIZE(a,p);
+
+    double3d_ptr r = volume_pool.get_double3d(a);
+    volume_utils::zero_out(r);
+    
+    std::size_t n = a->num_elements();
+    for ( std::size_t i = 0; i < n; ++i )
+    {
+        if ( p->data()[i] == idx )
+        {
+            r->data()[i] = a->data()[i];
+        }
+    }
+
+    return r;
+}
+
 }; // abstract class volume_utils
 
 }} // namespace zi::znn::volume_utils

@@ -25,6 +25,7 @@
 #include "new_core/pool_edge.hpp"
 #include "new_core/sum_edge.hpp"
 #include "new_core/nonlinear_node.hpp"
+#include "new_core/maxout_edge.hpp"
 
 #include <iostream>
 #include <zi/time.hpp>
