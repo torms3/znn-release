@@ -372,7 +372,13 @@ public:
 	void save_feature_maps(const std::string& fpath) const
 	{
 		if ( fmap_scanner_ )
-			fmap_scanner_->save(fpath);
+		{
+			// save by map
+			// fmap_scanner_->save_map(fpath);
+
+			// save by groups of feature maps
+			fmap_scanner_->save_tensor(fpath);
+		}
 	}
 
 
@@ -406,17 +412,15 @@ public:
 		, out_szs_(out_szs)
 		, scan_offset_(off)
 		, scan_dim_(dim)
+		, scan_coords_(3)
+		, scan_locs_()
 	{
-		// for each x, y, z dims
-		scan_coords_.reserve(3);
-
 		set_FoVs();
 		load(load_path);
 		init(mirroring);
 	}
 
-	virtual ~volume_forward_scanner()
-	{}
+	virtual ~volume_forward_scanner(){}
 
 }; // abstract class volume_forward_scanner
 

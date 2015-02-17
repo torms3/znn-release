@@ -22,10 +22,6 @@
 #include "../net.hpp"
 #include "../data_spec/rw_volume_data.hpp"
 
-#include <boost/algorithm/string.hpp>
-
-#include <map>
-
 namespace zi {
 namespace znn {
 
@@ -36,7 +32,8 @@ private:
 	typedef rw_dvolume_data_ptr fmap_type_ptr;
 
 private:
-	std::map<std::string, std::vector<fmap_type_ptr> > fmaps_;
+	// std::map<std::vector<fmap_type_ptr> >	fmaps_;
+	std::map<std::string,fmap_type_ptr> 	fmaps_;
 
 	net_ptr			net_;
 
@@ -47,75 +44,63 @@ private:
 public:
 	void scan(vec3i loc)
 	{
-		FOR_EACH( it, net_->node_groups_ )
+		// traverse every node
+		FOR_EACH( it, net_->nodes_ )
 		{
-			FOR_EACH( jt, (*it)->nodes_ )
-			{
-				push_feature_map(loc, *it, *jt);
-			}
+			// // skip input and output nodes
+			// if ( (*it)->count_in_edges()  == 0 ||
+			// 	 (*it)->count_out_edges() == 0 )
+			// 	continue;
+
+			push_feature_map(loc, *it);
 		}
 	}
 
-	void save_map(const std::string& fpath)
+	void save(const std::string& fpath)
 	{
-		FOR_EACH( it, net_->node_groups_ )
+		// traverse every node
+		FOR_EACH( it, net_->nodes_ )
 		{
-			FOR_EACH( jt, (*it)->nodes_ )
-			{
-				save_feature_map(fpath, *jt);
-			}
-		}
-	}
+			// // skip input and output nodes
+			// if ( (*it)->count_in_edges()  == 0 ||
+			// 	 (*it)->count_out_edges() == 0 )
+			// 	continue;
 
-	void save_tensor(const std::string& fpath)
-	{
-		FOR_EACH( it, fmaps_ )
-		{
-			std::string  name = it->first;
-			std::string fname = fpath + name;
-			
-			std::vector<double3d_ptr> tensor;
-			FOR_EACH( jt, it->second )
-			{
-				tensor.push_back((*jt)->get_volume());
-			}
-
-			volume_utils::save_tensor(tensor, fname);
+			save_feature_map(fpath, (*it)->get_name());
 		}
 	}
 
 private:
-	void push_feature_map(vec3i loc, node_group_ptr ng, node_ptr nd)
+	void push_feature_map(vec3i loc, node_ptr nd)
 	{
-		std::size_t idx = nd->get_neuron_number() - 1;
-		
-		fmaps_[ng->name()][idx]->set_patch(loc, nd->get_activation());
+		fmaps_[nd->get_name()]->set_patch(loc, nd->get_activation());
 	}
 
-	void save_feature_map(const std::string& fpath, node_ptr nd)
-	{;
-		std::size_t idx = nd->get_neuron_number() - 1;
-
-		std::string fname = fpath + nd->get_name();
-		double3d_ptr fmap = fmaps_[nd->get_name()][idx]->get_volume();
-		volume_utils::save(fmap, fname);
-		export_size_info(size_of(fmap), fname);
+	void save_feature_map(const std::string& fpath, const std::string& name)
+	{
+		std::string fname = fpath + name;
+		double3d_ptr fmap = fmaps_[name]->get_volume();
+		volume_utils::save(fmap,fname);
+		export_size_info(size_of(fmap),fname);
 	}
 
 
 private:
 	void initialize()
 	{
-		FOR_EACH( it, net_->node_groups_ )
+		// traverse every node
+		FOR_EACH( it, net_->nodes_ )
 		{
-			FOR_EACH( jt, (*it)->nodes_ )
-			{
-				add_feature_map(*it, *jt);
-			}
+			// // skip input and output nodes
+			// if ( (*it)->count_in_edges()  == 0 ||
+			// 	 (*it)->count_out_edges() == 0 )
+			// 	continue;
+
+			add_feature_map(*it);
 		}
 	}
 
-	void add_feature_map(node_group_ptr ng, node_ptr nd)
+	void add_feature_map(node_ptr nd)
 	{
 		vec3i sz = nd->get_filtered_size();
 		box a = box::centered_box(uc_,sz);
@@ -127,8 +112,7 @@ private:
 		vec3i FoV = sz;
 		fmap_type* fmap  = new fmap_type(vol,FoV,offset);
 
-		fmaps_[ng->name()].push_back(fmap_type_ptr(fmap));
-		STRONG_ASSERT(fmaps_[ng->name()].size()==nd->get_neuron_number());
+		fmaps_[nd->get_name()] = fmap_type_ptr(fmap);
 	}
 
 
