@@ -1062,6 +1062,16 @@ inline void save_list( std::list<T> a, const std::string& fname )
     }
 }
 
+template <typename T>
+inline void save_tensor( T a, const std::string& fname )
+{
+    FOR_EACH( it, a )
+    {
+        volume_utils::save_append(*it, fname);
+    }
+    export_size_info(size_of(a.front()), a.size(), fname);
+}
+
 inline void add_list_to( std::list<double3d_ptr> a, 
                          std::list<double3d_ptr> b )
 {
