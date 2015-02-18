@@ -447,12 +447,12 @@ public:
 	{
 		FOR_EACH( it, node_groups_ )
 		{
-			(*it)->display();
+			(*it)->display(os);
 			os << "\n";
 
 			FOR_EACH( jt, (*it)->out_ )
 			{
-				(*jt)->display();
+				(*jt)->display(os);
 				os << "\n";
 			}
 		}
