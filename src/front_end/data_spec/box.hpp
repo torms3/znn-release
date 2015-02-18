@@ -184,8 +184,7 @@ public:
 		sz = lc - uc;
 	}
 
-	~box()
-	{}
+	~box(){}
 
 }; // class box
 

@@ -462,7 +462,7 @@ public:
 	void display() const
 	{
 		std::cout << "[" << name() << "]" << std::endl;		
-		std::cout << "Node size:\t\t" << nodes_.front()->get_size() 
+		std::cout << "Node size:\t\t" << nodes_.front()->get_size()
 				  << " x " << count() << std::endl;
 	  	
 	  	// filter
@@ -542,6 +542,7 @@ private:
 	friend class edge_factory_impl;
 	friend class neuron_group;
 	friend class net;
+	friend class feature_map_scanner;
 
 }; // class node_group
 
