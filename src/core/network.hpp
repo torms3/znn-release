@@ -242,8 +242,19 @@ private:
     }
     
     // enable the optimization for scanning
-    void optimize_for_training( bool scanning = false )
+    void optimize_for_training(bool scanning = false)
     {
+        // [kisuklee] temporary
+        #define FILE_AND_CONSOLE( ofs, oss )       \
+            {                                       \
+                      ofs << oss.str() << "\n";     \
+                std::cout << oss.str() << "\n";     \
+                oss.clear(); oss.str("");           \
+            }
+
+        std::string fname = op->save_path + "optimization.profile";
+        std::ofstream fout(fname.c_str(), std::ios::out);
+
         // force fft
         force_fft(true);
         
@@ -257,19 +268,26 @@ private:
         {
             sample = random_sample(op->test_range);
         }
-        std::cout << "Warmup ffts (make fftplans): "
-                  << run_n_times(1, sample, scanning) << std::endl;        
+
+        std::ostringstream line;
+        line << "Warmup ffts (make fftplans): " 
+             << run_n_times(1, sample, scanning);
+        FILE_AND_CONSOLE( fout, line );
 
         double approx = run_n_times(1, sample, scanning);
-        std::size_t run_times = static_cast<std::size_t>(static_cast<double>(5)/approx);
+        std::size_t run_times = 
+            static_cast<std::size_t>(static_cast<double>(5)/approx);
         if ( run_times < 2 )
         {
             run_times = 2;
         }
-        std::cout << "Will run " << run_times << " iterations per test." << std::endl;
+
+        line << "Will run " << run_times << " iterations per test.";
+        FILE_AND_CONSOLE( fout, line );
 
         double best = run_n_times(run_times, sample, scanning);
-        std::cout << "Best so far (all ffts): " << best << std::endl;        
+        line << "Best so far (all ffts): " << best;
+        FILE_AND_CONSOLE( fout, line );        
         
         // temporary solution for layer-wise fft opimization
         // should be refactored
@@ -277,27 +295,33 @@ private:
         {
             if ( (*it)->count_in_connections() > 0 )
             {
-                std::cout << "Testing node_group [" << (*it)->name() << "] ..." << std::endl;
+                line << "Testing node_group [" << (*it)->name() << "] ...";
+                FILE_AND_CONSOLE( fout, line );
+
                 (*it)->receives_fft(false);
                 
                 double t = run_n_times(run_times, sample, scanning);
-                std::cout << "   when using ffts   : " << best << "\n"
-                          << "   when using bf_conv: " << t;
+                line << "   when using ffts   : " << best << "\n"
+                     << "   when using bf_conv: " << t;
+                FILE_AND_CONSOLE( fout, line );
 
                 if ( t < best )
                 {
                     best = t;
-                    std::cout << "   will use bf_conv" << std::endl;
+                    line << "   will use bf_conv";
+                    FILE_AND_CONSOLE( fout, line );
                 }
                 else
                 {
-                    std::cout << "   will use ffts" << std::endl;
+                    line << "   will use ffts";
+                    FILE_AND_CONSOLE( fout, line );
                     (*it)->receives_fft(true);
                 }
             }   
         }
 
-        std::cout << "Optimization done." << std::endl;
+        line << "Optimization done.";
+        FILE_AND_CONSOLE( fout, line );
     }
 
 
