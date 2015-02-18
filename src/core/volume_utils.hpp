@@ -253,6 +253,35 @@ inline double sum_all(std::list<double3d_ptr> a)
     return ret;
 }
 
+inline double sum_all(double3d_ptr a, bool3d_ptr b)
+{
+    PROFILE_FUNCTION();
+    ASSERT_SAME_SIZE(a,b);
+    
+    double ret = static_cast<double>(0);
+    std::size_t n = a->num_elements();
+    for ( std::size_t i = 0; i < n; ++i )
+    {
+        if ( b->data()[i] )
+        {
+            ret += a->data()[i];
+        }
+    }
+    return ret;
+}
+
+inline double sum_all(std::list<double3d_ptr> a,
+                      std::list<bool3d_ptr>   b)
+{
+    double ret = static_cast<double>(0);
+    std::list<bool3d_ptr>::iterator mit = b.begin();
+    FOR_EACH( it, a )
+    {
+        ret += volume_utils::sum_all(*it, *mit++);
+    }
+    return ret;
+}
+
 inline double nnz(bool3d_ptr a)
 {
     PROFILE_FUNCTION();
@@ -1476,6 +1505,9 @@ double3d_ptr mirror_boundary( double3d_ptr vol, vec3i RF )
 inline double3d_ptr 
 binomial_rebalance_mask( double3d_ptr lbl, double thresh = 0.5 )
 {
+    double one  = static_cast<double>(1);
+    double zero = static_cast<double>(0);
+
     double3d_ptr pos = volume_pool.get_double3d(lbl);
     double3d_ptr neg = volume_pool.get_double3d(lbl);
 
@@ -1483,8 +1515,62 @@ binomial_rebalance_mask( double3d_ptr lbl, double thresh = 0.5 )
     for ( std::size_t i = 0; i < n; ++i )
     {
         bool b = lbl->data()[i] > thresh;
-        pos->data()[i] = b ? static_cast<double>(1):static_cast<double>(0);
-        neg->data()[i] = b ? static_cast<double>(0):static_cast<double>(1);
+        pos->data()[i] = b ? one:zero;
+        neg->data()[i] = b ? zero:one;
+    }
+    
+
+    double npos = volume_utils::sum_all(pos);
+    double nneg = volume_utils::sum_all(neg);
+
+    // return mask
+    double3d_ptr ret = volume_pool.get_double3d(lbl);
+
+    // avoid divide-by-zero case
+    if ( npos < 1 || nneg < 1 )
+    {
+        volume_utils::fill_one(ret);
+    }
+    else
+    {
+        double wpos = one/npos;
+        double wneg = one/nneg;
+        double sum  = wpos + wneg;
+        
+        wpos /= sum;
+        wneg /= sum;
+        
+        volume_utils::zero_out(ret);
+        volume_utils::mul_add_to(wpos,pos,ret);
+        volume_utils::mul_add_to(wneg,neg,ret);
+    }
+
+    return ret;
+}
+
+inline double3d_ptr 
+binomial_rebalance_mask( double3d_ptr lbl, bool3d_ptr msk,
+                         double thresh = 0.5 )
+{
+    double one  = static_cast<double>(1);
+    double zero = static_cast<double>(0);
+
+    double3d_ptr pos = volume_pool.get_double3d(lbl);
+    double3d_ptr neg = volume_pool.get_double3d(lbl);
+
+    std::size_t n = lbl->num_elements();
+    for ( std::size_t i = 0; i < n; ++i )
+    {
+        bool b = lbl->data()[i] > thresh;
+        pos->data()[i] = b ? one:zero;
+        neg->data()[i] = b ? zero:one;
+    }
+
+    if ( msk )
+    {
+        ASSERT_SAME_SIZE(lbl,msk);
+        volume_utils::elementwise_masking(pos, msk);
+        volume_utils::elementwise_masking(neg, msk);
     }
 
     double npos = volume_utils::sum_all(pos);
@@ -1500,8 +1586,8 @@ binomial_rebalance_mask( double3d_ptr lbl, double thresh = 0.5 )
     }
     else
     {
-        double wpos = static_cast<double>(1)/npos;
-        double wneg = static_cast<double>(1)/nneg;
+        double wpos = one/npos;
+        double wneg = one/nneg;
         double sum  = wpos + wneg;
         
         wpos /= sum;
@@ -1516,13 +1602,29 @@ binomial_rebalance_mask( double3d_ptr lbl, double thresh = 0.5 )
 }
 
 inline std::list<double3d_ptr> 
-binomial_rebalance_mask( std::list<double3d_ptr> lbls, double thresh = 0.5 )
+binomial_rebalance_mask( std::list<double3d_ptr> lbls,
+                         double thresh = 0.5 )
+{
+    std::list<double3d_ptr> ret;
+    FOR_EACH( it, lbls )
+    {
+        ret.push_back(binomial_rebalance_mask(*it, thresh));
+    }
+    return ret;
+}
+
+inline std::list<double3d_ptr> 
+binomial_rebalance_mask( std::list<double3d_ptr> lbls, 
+                         std::list<bool3d_ptr>   msks,
+                         double thresh = 0.5 )
 {
     std::list<double3d_ptr> ret;
 
+    std::list<bool3d_ptr>::iterator mit = msks.begin();
     FOR_EACH( it, lbls )
     {
-        ret.push_back(volume_utils::binomial_rebalance_mask(*it,thresh));
+        ret.push_back(
+            binomial_rebalance_mask(*it, *mit++, thresh));
     }
 
     return ret;
@@ -1554,7 +1656,7 @@ multinomial_rebalance_mask( std::list<double3d_ptr> lbls )
     }
     else
     {
-        volume_utils::zero_out(ret);
+        volume_utils::zero_out(ret);        
         
         std::size_t idx = 0;
         FOR_EACH( it, lbls )
@@ -1564,6 +1666,51 @@ multinomial_rebalance_mask( std::list<double3d_ptr> lbls )
         }
     }
 
+    return ret;
+}
+
+inline double3d_ptr
+multinomial_rebalance_mask( std::list<double3d_ptr> lbls, 
+                            std::list<bool3d_ptr>   msks )
+{
+    bool divide_by_zero = false;
+
+    // [kisuklee]
+    // multinomial masks are assumed to be identical.
+    bool3d_ptr msk = msks.front();
+
+    // rebalancing weights
+    std::vector<double> weights;
+    double sum = static_cast<double>(0);
+    FOR_EACH( it, lbls )
+    {
+        double n = volume_utils::sum_all(*it, msk);
+        if ( n < 1 ) divide_by_zero = true;
+        double w = static_cast<double>(1)/n;
+        weights.push_back(w);
+        sum += w;
+    }
+
+    // normalize rebalancing weights and construct weight mask
+    double3d_ptr ret = volume_pool.get_double3d(lbls.front());
+
+    if ( divide_by_zero )
+    {
+        volume_utils::fill_one(ret);
+    }
+    else
+    {
+        volume_utils::zero_out(ret);        
+        
+        std::size_t idx = 0;
+        FOR_EACH( it, lbls )
+        {
+            double w = weights[idx++]/sum;
+            volume_utils::mul_add_to(w,*it,ret);
+        }
+    }
+
+    volume_utils::elementwise_masking(ret, msk);
     return ret;
 }
 

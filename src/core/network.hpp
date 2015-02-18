@@ -302,21 +302,19 @@ private:
                 
                 double t = run_n_times(run_times, sample, scanning);
                 line << "   when using ffts   : " << best << "\n"
-                     << "   when using bf_conv: " << t;
-                FILE_AND_CONSOLE( fout, line );
+                     << "   when using bf_conv: " << t;                
 
                 if ( t < best )
                 {
                     best = t;
-                    line << "   will use bf_conv";
-                    FILE_AND_CONSOLE( fout, line );
+                    line << "   will use bf_conv";                    
                 }
                 else
                 {
-                    line << "   will use ffts";
-                    FILE_AND_CONSOLE( fout, line );
+                    line << "   will use ffts";                    
                     (*it)->receives_fft(true);
                 }
+                FILE_AND_CONSOLE( fout, line );
             }   
         }
 
@@ -689,7 +687,7 @@ public:
         //     if ( op->cost_fn == "cross_entropy" )
         //     {
         //         double3d_ptr rbmask = 
-        //             volume_utils::multinomial_rebalance_mask(s->labels);
+        //             volume_utils::multinomial_rebalance_mask(s->labels, s->masks);
 
         //         FOR_EACH( it, grads )
         //         {
@@ -699,7 +697,7 @@ public:
         //     else
         //     {
         //         std::list<double3d_ptr> rbmask = 
-        //             volume_utils::binomial_rebalance_mask(s->labels);
+        //             volume_utils::binomial_rebalance_mask(s->labels, s->masks);
 
         //         std::list<double3d_ptr>::iterator rbmit = rbmask.begin();
         //         FOR_EACH( it, grads )

@@ -76,7 +76,7 @@ protected:
 			std::cout << std::endl;
 		}
 			
-		// labels (and rebalanced weight masks)
+		// labels
 		FOR_EACH( it, parser.label_specs )
 		{
 			std::cout << "Loading label [" << (*it)->name << "]" << std::endl;			
@@ -256,6 +256,9 @@ protected:
         // valid locations
         collect_valid_locations();
 
+        // global rebalancing
+        // global_rebalancing();
+
         initialized_ = true;
     }
 
@@ -362,6 +365,17 @@ protected:
 		std::cout << "Completed. (Elapsed time: " 
                   << wt.elapsed<double>() << " secs)\n" << std::endl;
     }
+
+    // void global_rebalancing()
+    // {
+    //     std::cout << "[volume_data_provider] global_rebalancing" << std::endl;
+    //     zi::wall_timer wt;
+
+    //     update_range();
+
+    //     std::cout << "Completed. (Elapsed time: " 
+    //               << wt.elapsed<double>() << " secs)\n" << std::endl;
+    // }
 
     void set_FoVs()
     {
