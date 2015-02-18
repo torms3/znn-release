@@ -88,12 +88,13 @@ public:
 	// [SCANNING]
 	std::string			scanner;
 	vec3i				scan_offset;
-	vec3i				subvol_dim;	
+	vec3i				subvol_dim;
 	std::size_t 		weight_idx;
 	bool				force_load;
 	bool				out_filter;
 	std::string 		outname;
 	std::string 		subname;
+	bool				scan_fmaps;
 
 
 private:
@@ -179,6 +180,7 @@ private:
 	        ("SCAN.out_filter",value<bool>(&out_filter)->default_value(true),"Enable output filtering")
 	        ("SCAN.outname",value<std::string>(&outname)->default_value("out"),"Output file name")
 	        ("SCAN.subname",value<std::string>(&subname)->default_value(""),"Output file subname")
+	        ("SCAN.fmaps",value<bool>(&scan_fmaps)->default_value(false),"Scanning feature maps")
 	        ;
 	}
 
@@ -297,7 +299,9 @@ public:
         		   << "force_load=" << rhs.force_load << '\n'
         		   << "out_filter=" << rhs.out_filter << '\n'
         		   << "outname=" << rhs.outname << '\n'
-        		   << "subname=" << rhs.subname << '\n');
+        		   << "subname=" << rhs.subname << '\n'
+        		   << "scan_fmaps=" << rhs.scan_fmaps << '\n'
+        		);
 	}
 
 

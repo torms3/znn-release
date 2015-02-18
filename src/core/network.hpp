@@ -194,6 +194,9 @@ private:
                                        op->scan_offset,
                                        op->subvol_dim,
                                        op->mirroring));
+
+            if ( op->scan_fmaps )
+                scanners_[n]->set_feature_map_scanner(net_);
         }
         else
         {
@@ -491,9 +494,23 @@ public:
                           << " secs" << std::endl;
             }
 
-            std::ostringstream batch;
-            batch << op->save_path << op->outname << idx << op->subname;
-            scanner->save(batch.str());
+            // save feature maps
+            if ( op->scan_fmaps )
+            {
+                const std::string& fmaps_path = op->save_path + "fmaps/";
+                boost::filesystem::path fmaps_dir(fmaps_path);
+                if ( !boost::filesystem::exists(fmaps_dir) )
+                {
+                    boost::filesystem::create_directory(fmaps_dir);
+                }
+                scanner->save_feature_maps(fmaps_path);
+            }
+            else // save output
+            {
+                std::ostringstream batch;
+                batch << op->save_path << op->outname << idx << op->subname;
+                scanner->save(batch.str());
+            }
         }
     }
 

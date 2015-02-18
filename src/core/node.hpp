@@ -298,6 +298,11 @@ public:
         real_filter_size_ = (filter_size_-vec3i::one)*sparse_+vec3i::one;
     }
 
+    double3d_ptr get_activation()
+    {
+        return f_;
+    }
+
     void set_error_fn(error_fn_ptr ef)
     {
         error_fn_ = ef;
@@ -331,6 +336,11 @@ public:
     vec3i get_size() const
     {
         return size_;
+    }
+
+    vec3i get_filtered_size() const
+    {
+        return size_ - real_filter_size_ + vec3i::one;
     }
 
     void set_size( const vec3i& size )
