@@ -322,6 +322,8 @@ private:
 
         line << "Optimization done.";
         FILE_AND_CONSOLE( fout, line );
+
+        fout.close();
     }
 
 
@@ -743,6 +745,12 @@ private:
             net_ = builder.build(op->load_path);
             if ( !op->out_filter ) net_->disable_output_filtering();
             net_->initialize(op->outsz);
+            
+            // save net architecture 
+            std::string fname = op->save_path + "architecture.txt";
+            std::ofstream fout(fname.c_str(), std::ios::out);
+            net_->display(fout);
+            fout.close();
         }
 
         return net_->initialized();

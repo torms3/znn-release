@@ -443,17 +443,17 @@ public:
 
 
 public:
-	void display() const
+	void display(std::ostream& os = std::cout) const
 	{
 		FOR_EACH( it, node_groups_ )
 		{
 			(*it)->display();
-			std::cout << std::endl;
+			os << "\n";
 
 			FOR_EACH( jt, (*it)->out_ )
 			{
 				(*jt)->display();
-				std::cout << std::endl;
+				os << "\n";
 			}
 		}
 	}

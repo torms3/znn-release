@@ -253,20 +253,20 @@ private:
 
 
 public:
-	void display() const
+	void display(std::ostream& os = std::cout) const
 	{
-		std::cout << "[" << name() << "]" << std::endl;
+		os << "[" << name() << "]" << "\n";
 		
 		// Kernel
-	  	std::cout << "Kernel size:\t\t" << spec_->size << " x "
-	  			  << count() << std::endl;
+	  	os << "Kernel size:\t\t" << spec_->size << " x "
+		   << count() << "\n";
 
 	  	vec3i sparse = edges_.front()->get_sparse();
 	  	if ( sparse != vec3i::one )
 	  	{
-	  		std::cout << "Sparseness:\t\t" << sparse << std::endl;
-		  	std::cout << "Real filter size:\t" 
-		  			  << spec_->real_filter_size(sparse) << std::endl;
+	  		os << "Sparseness:\t\t" << sparse << "\n";
+		  	os << "Real filter size:\t" 
+		  	   << spec_->real_filter_size(sparse) << "\n";
 		}
 	}
 
