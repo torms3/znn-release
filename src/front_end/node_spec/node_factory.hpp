@@ -76,6 +76,10 @@ public:
 
 		// set filtering - set stride later		
 		set_filter(ret,spec->filter,spec->filter_size);
+
+		// dropout
+		ret->set_dropout(spec->dropout);
+		ret->set_dropout_rate(spec->p);
 			
 		return ret;
 	}

@@ -519,6 +519,9 @@ public:
         if( op->test_range.empty() )
             return;
 
+        // dropout
+        net_->set_inference(true);
+
         // test loop
         for ( std::size_t i = 1; i <= op->test_samples; ++i )
         {
@@ -530,6 +533,9 @@ public:
             // error computation
             test_monitor_->update(v, s->labels, s->masks);
         }
+
+        // dropout
+        net_->set_inference(false);
 
         std::cout << "<<<<<<<<<<<<< TEST >>>>>>>>>>>>>" << std::endl;
         test_monitor_->check(op->save_path, n_iter_);
@@ -548,6 +554,9 @@ private:
         {
             net_->force_load();
         }
+
+        // DropOut
+        net_->set_inference(true);
 
         // time-stamped network weight
         if ( op->weight_idx > 0 )

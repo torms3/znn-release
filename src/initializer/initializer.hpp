@@ -41,6 +41,38 @@ namespace {
 boost::mt19937 rng = boost::mt19937(time(0));
 } // anonymous namespace
 
+// for generating thread-safe uniform[0,1] random numbers
+struct zero_one_generator_impl
+{
+private:
+  	typedef boost::uniform_real<> uniform_dist;
+	typedef boost::variate_generator<boost::mt19937&, uniform_dist> generator;
+    
+    boost::mt19937 rng_;
+    uniform_dist   dis_;
+    generator      gen_;
+
+    zi::mutex      m_;
+
+public:
+	zero_one_generator_impl()
+		: rng_(time(0))
+		, dis_(0,1)
+		, gen_(rng_, dis_)
+	{}
+
+	double rand()
+	{
+		zi::mutex::guard g(m_);
+		return gen_();
+	}
+}; // struct zero_one_generator_impl
+
+// global thread-safe unit uniform random number generator
+namespace {
+zero_one_generator_impl& zero_one_generator = zi::singleton<zero_one_generator_impl>::instance();
+} // anonymous namespace
+
 }} // namespace zi::znn
 
 #endif // ZNN_INITIALIZER_HPP_INCLUDED
