@@ -149,9 +149,9 @@ get_segmentation( std::list<double3d_ptr> affs,
     return ids_ptr;
 }
 
+typedef std::pair<std::list<double3d_ptr>, double> malis_pair;
 
-
-inline std::pair<std::list<double3d_ptr>, double>
+inline malis_pair
 malis( std::list<double3d_ptr> true_affs,
        std::list<double3d_ptr> affs,
        std::list<bool3d_ptr> masks,

@@ -21,45 +21,63 @@
 
 #include "cost_fn.hpp"
 #include "../core/volume_pool.hpp"
+#include "malis.hpp"
 
 namespace zi {
 namespace znn {
 
 class malis_cost_fn: virtual public cost_fn
 {
-public:
-    virtual double3d_ptr gradient( double3d_ptr output,
-                                   double3d_ptr label,
-                                   bool3d_ptr   mask )
-    {
-    }
+private:
+    // margin for hinge loss
+    double              m_;
 
+    // to avoid duplicate call of malis()
+    std::list<double>   unique_queue_;
+
+public:
     virtual std::list<double3d_ptr> gradient( std::list<double3d_ptr> outputs,
                                               std::list<double3d_ptr> labels,
                                               std::list<bool3d_ptr>   masks )
     {
-    }
+        // compute malis (gradient,loss) pair
+        malis_pair mp = malis(labels, outputs, masks, m_);
+        
+        // store loss value for later use
+        unique_queue_.clear();
+        unique_queue_.push_back(mp.second);
 
-    virtual double compute_cost( double3d_ptr output,
-                                 double3d_ptr label,
-                                 bool3d_ptr   mask )
-    {
+        // return gradient
+        return mp.first;
     }
 
     virtual double compute_cost( std::list<double3d_ptr> outputs, 
                                  std::list<double3d_ptr> labels,
                                  std::list<bool3d_ptr>   masks )
     {
+        if ( unique_queue_.empty() )
+        {
+            malis_pair mp = malis(labels, outputs, masks, m_);
+            unique_queue_.push_back(mp.second);
+        }
+
+        double r = unique_queue_.back();
+        unique_queue_.clear();
+
+        double n = get_output_number(masks);
+        return n*r;
     }
 
     virtual void print_cost( double cost )
     {
-        std::cout << "SQSQ (m=" << margin_ << "): " << cost;
+        std::cout << "malis loss (m=" << m_ << "): " << cost;
     }
 
 
 public:
-    malis_cost_fn()
+    malis_cost_fn(double m = 0)
+        : m_(m)
+        , unique_queue_()
     {}
 
 }; // class malis_cost_fn

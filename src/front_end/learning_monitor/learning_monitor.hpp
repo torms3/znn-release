@@ -44,14 +44,6 @@ private:
     iter_list       iter_lst_;
 
 public:
-    double cost( std::list<double3d_ptr> outs,
-                 std::list<double3d_ptr> lbls,
-                 std::list<bool3d_ptr>   msks )
-    {
-        return cost_fn_->compute_cost(outs,lbls,msks) /
-               cost_fn_->get_output_number(msks);
-    }
-
     void update( std::list<double3d_ptr> outs,
                  std::list<double3d_ptr> lbls,
                  std::list<bool3d_ptr>   msks,
