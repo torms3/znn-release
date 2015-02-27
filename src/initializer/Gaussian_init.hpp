@@ -53,13 +53,17 @@ public:
 		zi::zargs_::parser<std::vector<double> > arg_parser;
 		
 		bool parsed = arg_parser.parse(&args,params);
-		if ( parsed && (args.size() >= 1) )
+		if ( parsed )
 		{
-			mu = args[0];
-			if ( args.size() >= 2 )
-			{
-				sigma = args[1];
-			}
+            if ( args.size() == 1 )
+            {
+                sigma = args[0];
+            }
+            else if ( args.size() == 2 )
+            {
+                mu = args[0];
+                sigma = args[1];
+            }
 		}
     }
 
