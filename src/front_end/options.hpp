@@ -95,6 +95,7 @@ public:
 	std::string 		outname;
 	std::string 		subname;
 	bool				scan_fmaps;
+	vec3i 				time_series;
 
 
 private:
@@ -181,6 +182,7 @@ private:
 	        ("SCAN.outname",value<std::string>(&outname)->default_value("out"),"Output file name")
 	        ("SCAN.subname",value<std::string>(&subname)->default_value(""),"Output file subname")
 	        ("SCAN.fmaps",value<bool>(&scan_fmaps)->default_value(false),"Scanning feature maps")
+	        ("SCAN.time_series",value<std::string>()->default_value("0,0,0"),"Time series scanning")
 	        ;
 	}
 
@@ -249,6 +251,17 @@ private:
 				subvol_dim[i] = target[i];
 			}
 		}
+
+		// scan time series
+		target.clear();
+		source = vm["SCAN.time_series"].as<std::string>();
+		if ( _parser.parse(&target,source) )
+		{
+			for ( std::size_t i = 0; i < target.size(); ++i )
+			{
+				time_series[i] = target[i];
+			}
+		}
 	}
 
 
@@ -301,6 +314,7 @@ public:
         		   << "outname=" << rhs.outname << '\n'
         		   << "subname=" << rhs.subname << '\n'
         		   << "scan_fmaps=" << rhs.scan_fmaps << '\n'
+        		   << "time_series=" << vec3i_to_string(rhs.time_series) << '\n'
         		);
 	}
 
@@ -559,6 +573,7 @@ public:
 		: outsz(vec3i::one)
 		, scan_offset(vec3i::zero)
 		, subvol_dim(vec3i::zero)
+		, time_series(vec3i::zero)
 	{
 		initialize();
 		

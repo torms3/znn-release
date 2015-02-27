@@ -34,10 +34,6 @@ private:
 
 
 public:
-	// map: name -> spec
-	// std::map<const std::string,data_spec_ptr> 	input_specs;
-	// std::map<const std::string,data_spec_ptr> 	label_specs;
-	// std::map<const std::string,data_spec_ptr> 	mask_specs;
 	std::list<data_spec_ptr> 	input_specs;
 	std::list<data_spec_ptr> 	label_specs;
 	std::list<data_spec_ptr> 	mask_specs;
@@ -65,18 +61,15 @@ private:
 			STRONG_ASSERT( spec->build(config_) );
 
 			if ( std::string::npos != name.find("INPUT") )
-			{				
-				// input_specs[name] = spec;
+			{
 				input_specs.push_back(spec);
 			}
 			else if ( std::string::npos != name.find("LABEL") )
 			{
-				// label_specs[name] = spec;
 				label_specs.push_back(spec);
 			}
 			else if ( std::string::npos != name.find("MASK") )
 			{
-				// mask_specs[name] = spec;
 				mask_specs.push_back(spec);
 			}
 		}
