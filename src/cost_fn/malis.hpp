@@ -154,7 +154,7 @@ typedef std::pair<std::list<double3d_ptr>, double> malis_pair;
 inline malis_pair
 malis( std::list<double3d_ptr> true_affs,
        std::list<double3d_ptr> affs,
-       std::list<bool3d_ptr> masks,
+       std::list<bool3d_ptr>   masks,
        double margin)
 {
     double loss = 0;
@@ -235,6 +235,10 @@ malis( std::list<double3d_ptr> true_affs,
 
     std::size_t incorrect = 0;
 
+    // [kisuklee]
+    // (B,N) or (B,B) pairs where B: boundary, N: non-boundary
+    std::size_t n_b_pairs = 0;
+
     FOR_EACH( it, edges )
     {
         uint32_t set1 = sets.find_set(it->get<1>()); // region A
@@ -247,12 +251,22 @@ malis( std::list<double3d_ptr> true_affs,
 
             FOR_EACH( sit, contains[set1] )
             {
-                if ( contains[set2].find(sit->first) != contains[set2].end() )
+                // boundary
+                if ( sit->first == 0 )
                 {
-                    std::size_t pairs = sit->second * contains[set2][sit->first];
-                    n_pair_diff -= pairs;
-                    if ( sit->first != 0 )
+                    FOR_EACH( sit2, contains[set2] )
                     {
+                        std::size_t pairs = sit->second * sit2->second;
+                        n_pair_diff -= pairs;
+                        n_b_pairs   += pairs;
+                    }
+                }
+                else // non-boundary
+                {
+                    if ( contains[set2].find(sit->first) != contains[set2].end() )
+                    {
+                        std::size_t pairs = sit->second * contains[set2][sit->first];
+                        n_pair_diff -= pairs;
                         n_pair_same += pairs;
                     }
                 }
@@ -269,12 +283,12 @@ malis( std::list<double3d_ptr> true_affs,
 
             double* p = it->get<3>();
 
-            // positive (y = 1), splitter
+            // delta(s_i,s_j) = 1
             double dl = -std::max(0.0,0.5+margin-(it->get<0>()));
             *p   += dl*n_pair_same;
             loss += dl*dl*0.5*n_pair_same;
 
-            // negative (y = 0), merger
+            // delta(s_i,s_j) = 0
             dl = std::max(0.0,(it->get<0>())-0.5+margin);
             *p   += dl*n_pair_diff;
             loss += dl*dl*0.5*n_pair_diff;
@@ -294,7 +308,9 @@ malis( std::list<double3d_ptr> true_affs,
         }
     }
 
-    return std::make_pair(affs, loss/n_pairs);
+    std::size_t n_eff_pairs = n_pairs - n_b_pairs;
+
+    return std::make_pair(affs, loss/n_eff_pairs);
 }
 
 

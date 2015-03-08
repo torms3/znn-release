@@ -350,15 +350,23 @@ public:
 	virtual void save( const std::string& fpath ) const
 	{
 		// outputs
-		std::size_t cnt = 0;
+		// std::size_t cnt = 0;
+		// FOR_EACH( it, outs_ )
+		// {
+		// 	std::string idx = boost::lexical_cast<std::string>(cnt++);
+		// 	std::string fname = fpath + "." + idx;
+		// 	double3d_ptr out = (*it)->get_volume();
+		// 	volume_utils::save(out,fname);
+		// 	export_size_info(size_of(out),fname);
+		// }
+
+		// tensor
+		std::vector<double3d_ptr> tensor;
 		FOR_EACH( it, outs_ )
 		{
-			std::string idx = boost::lexical_cast<std::string>(cnt++);
-			std::string fname = fpath + "." + idx;
-			double3d_ptr out = (*it)->get_volume();
-			volume_utils::save(out,fname);
-			export_size_info(size_of(out),fname);
+			tensor.push_back((*it)->get_volume());
 		}
+		volume_utils::save_tensor(tensor, fpath);
 	}
 
 
