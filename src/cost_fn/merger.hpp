@@ -27,8 +27,7 @@ namespace znn {
 inline  std::list<double3d_ptr>
 merger( std::list<double3d_ptr> true_affs,
         std::list<double3d_ptr> affs,
-        std::list<bool3d_ptr>   masks,
-        double margin )
+        std::list<bool3d_ptr>   masks )    
 {
     long3d_ptr seg_ptr = get_segmentation(true_affs, masks);
     long3d&    seg = *seg_ptr;
