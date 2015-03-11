@@ -27,7 +27,8 @@ namespace znn {
 inline  std::list<double3d_ptr>
 merger( std::list<double3d_ptr> true_affs,
         std::list<double3d_ptr> affs,
-        std::list<bool3d_ptr>   masks )    
+        std::list<bool3d_ptr>   masks,
+        double margin = 0 )    
 {
     long3d_ptr seg_ptr = get_segmentation(true_affs, masks);
     long3d&    seg = *seg_ptr;
@@ -68,10 +69,10 @@ merger( std::list<double3d_ptr> true_affs,
         contains[i+1][seg.data()[i]] = 1;
     }
 
-    std::size_t n_pairs = n*(n-1)/2;
+    // std::size_t n_pairs = n*(n-1)/2;
 
-    typedef boost::tuple<uint32_t,uint32_t,double*> edge_type;
-    typedef std::greater<edge_type>                 edge_compare;
+    typedef boost::tuple<double,uint32_t,uint32_t,double*> edge_type;
+    typedef std::greater<edge_type>                        edge_compare;
 
     std::vector<edge_type> edges;
     edges.reserve(n*3);
@@ -83,28 +84,26 @@ merger( std::list<double3d_ptr> true_affs,
                 if ( x > 0 )
                 {
                     if ( (*xmask)[x][y][z] )
-                        edges.push_back(edge_type(ids[x-1][y][z], ids[x][y][z], 
-                                                  &((*xres)[x][y][z])));
+                        edges.push_back(edge_type((*xaff)[x][y][z], ids[x-1][y][z],
+                                                  ids[x][y][z], &((*xres)[x][y][z])));
                 }
 
                 if ( y > 0 )
                 {
                     if ( (*ymask)[x][y][z] )
-                        edges.push_back(edge_type(ids[x][y-1][z], ids[x][y][z],
-                                                  &((*yres)[x][y][z])));
+                        edges.push_back(edge_type((*yaff)[x][y][z], ids[x][y-1][z],
+                                                  ids[x][y][z], &((*yres)[x][y][z])));
                 }
 
                 if ( z > 0 )
                 {
                     if ( (*zmask)[x][y][z] )
-                        edges.push_back(edge_type(ids[x][y][z-1], ids[x][y][z],
-                                                  &((*zres)[x][y][z])));
+                        edges.push_back(edge_type((*zaff)[x][y][z], ids[x][y][z-1],
+                                                  ids[x][y][z], &((*zres)[x][y][z])));
                 }
             }
 
     std::sort(edges.begin(), edges.end(), edge_compare());
-
-    std::size_t incorrect = 0;
 
     // [kisuklee]
     // (B,N) or (B,B) pairs where B: boundary, N: non-boundary
@@ -112,8 +111,8 @@ merger( std::list<double3d_ptr> true_affs,
 
     FOR_EACH( it, edges )
     {
-        uint32_t set1 = sets.find_set(it->get<0>()); // region A
-        uint32_t set2 = sets.find_set(it->get<1>()); // region B
+        uint32_t set1 = sets.find_set(it->get<1>()); // region A
+        uint32_t set2 = sets.find_set(it->get<2>()); // region B
 
         if ( set1 != set2 )
         {
@@ -125,12 +124,9 @@ merger( std::list<double3d_ptr> true_affs,
                 // boundary
                 if ( sit->first == 0 )
                 {
-                    FOR_EACH( sit2, contains[set2] )
-                    {
-                        std::size_t pairs = sit->second * sit2->second;
-                        n_pair_diff -= pairs;
-                        n_b_pairs   += pairs;
-                    }
+                    std::size_t pairs = sit->second * sizes[set2];
+                    n_pair_diff -= pairs;
+                    n_b_pairs   += pairs;
                 }
                 else // non-boundary
                 {
@@ -140,13 +136,35 @@ merger( std::list<double3d_ptr> true_affs,
                         n_pair_diff -= pairs;
                         n_pair_same += pairs;
                     }
+
+                    if ( contains[set2].find(0) != contains[set2].end() )
+                    {
+                        std::size_t pairs = sit->second * contains[set2][0];
+                        n_pair_diff -= pairs;
+                        n_b_pairs   += pairs;
+                    }
                 }
             }
 
-            double* p = it->get<2>();
+            double* p = it->get<3>();
+
+            // delta(s_i,s_j) = 1
+            double dl = -std::max(0.0,0.5+margin-(it->get<0>()));
+            *p   += dl*n_pair_same;
 
             // delta(s_i,s_j) = 0
-            *p = n_pair_diff > 0 ? static_cast<double>(1):static_cast<double>(0);
+            dl = std::max(0.0,(it->get<0>())-0.5+margin);
+            *p   += dl*n_pair_diff;
+
+            // merger: 1, splitter: -1
+            if ( *p > 0.5 )
+            {
+                *p = static_cast<double>(1);
+            }
+            else if ( *p < -0.5 )
+            {
+                *p = static_cast<double>(-1);
+            }
 
             uint32_t new_set = sets.join(set1, set2);
             sizes[set1] += sizes[set2];
@@ -162,8 +180,6 @@ merger( std::list<double3d_ptr> true_affs,
             std::swap(contains[new_set], contains[set1]);
         }
     }
-
-    std::size_t n_eff_pairs = n_pairs - n_b_pairs;
 
     return affs;
 }

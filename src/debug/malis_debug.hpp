@@ -1,8 +1,7 @@
 #ifndef ZNN_MALIS_DEBUG_HPP_INCLUDED
 #define ZNN_MALIS_DEBUG_HPP_INCLUDED
 
-#include "front_end/data_provider/data_providers.hpp"
-#include "front_end/options.hpp"
+#include "debug.hpp"
 #include "cost_fn/malis.hpp"
 
 namespace zi {
@@ -19,15 +18,10 @@ namespace znn {
 //      subvol_dim      : receptive field (dummy)
 //      cost_fn_param   : margin for square-square loss
 // 
-class malis_debug 
+class malis_debug : virtual public debug
 {
-private:
-    data_provider_ptr   dp_;
-    options_ptr         op_;
-
-
 public:
-    void run()
+    virtual void run()
     {
         double margin = op_->cost_fn_param;
         std::cout << "margin = " << margin << std::endl;
@@ -56,9 +50,9 @@ public:
                 const std::string& hstr = op_->save_path + op_->outname;
                 const std::string& mstr = ".m" + boost::lexical_cast<std::string>(j);
 
-                accumulate_volumes(s->inputs,   hstr + mstr + ".affin");
-                accumulate_volumes(s->labels,   hstr + mstr + ".truth");
-                accumulate_volumes(mpair.first, hstr + mstr + ".malis");
+                accumulate_volumes(s->inputs,   hstr + mstr + ".affin", i+1);
+                accumulate_volumes(s->labels,   hstr + mstr + ".truth", i+1);
+                accumulate_volumes(mpair.first, hstr + mstr + ".malis", i+1);
             }
 
             // report elapsed time
@@ -98,7 +92,9 @@ private:
         dp_ = data_provider_ptr(dp);
     }
 
-    void accumulate_volumes( std::list<double3d_ptr> v, const std::string& fname )
+    void accumulate_volumes( std::list<double3d_ptr> v, 
+                             const std::string& fname,
+                             std::size_t counter )
     {
         int i = 0;
         FOR_EACH( it, v )
@@ -109,14 +105,16 @@ private:
         }
 
         // volume size info
-        export_size_info(size_of(v.front()), fname);
+        export_size_info(size_of(v.front()), counter, fname);
     }
 
 
 public:
     malis_debug( options_ptr op )
-        : op_(op)
+        : debug(op)
     {}
+
+    virtual ~malis_debug(){};
 
 };  // class malis_debug
 

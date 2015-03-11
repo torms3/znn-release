@@ -254,12 +254,9 @@ malis( std::list<double3d_ptr> true_affs,
                 // boundary
                 if ( sit->first == 0 )
                 {
-                    FOR_EACH( sit2, contains[set2] )
-                    {
-                        std::size_t pairs = sit->second * sit2->second;
-                        n_pair_diff -= pairs;
-                        n_b_pairs   += pairs;
-                    }
+                    std::size_t pairs = sit->second * sizes[set2];
+                    n_pair_diff -= pairs;
+                    n_b_pairs   += pairs;
                 }
                 else // non-boundary
                 {
@@ -268,6 +265,13 @@ malis( std::list<double3d_ptr> true_affs,
                         std::size_t pairs = sit->second * contains[set2][sit->first];
                         n_pair_diff -= pairs;
                         n_pair_same += pairs;
+                    }
+
+                    if ( contains[set2].find(0) != contains[set2].end() )
+                    {
+                        std::size_t pairs = sit->second * contains[set2][0];
+                        n_pair_diff -= pairs;
+                        n_b_pairs   += pairs;
                     }
                 }
             }

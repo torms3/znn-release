@@ -1,5 +1,5 @@
 ODIR		=	./bin
-CPP		=	g++
+CPP			=	g++
 CPP_FLAGS	= 	-g
 INC_FLAGS	=	-I. -I./src -I./zi
 OPT_FLAGS	=	-DNDEBUG -O2
@@ -10,6 +10,9 @@ BOOST_LIBS	=	-lboost_program_options -lboost_regex -lboost_filesystem -lboost_sy
 
 znn: src/main.cpp
 	$(CPP) -o $(ODIR)/znn src/main.cpp $(CPP_FLAGS) $(INC_FLAGS) $(OPT_FLAGS) $(OTH_FLAGS) $(LIBS) $(BOOST_LIBS)
+
+debug: src/debug_main.cpp
+	$(CPP) -o $(ODIR)/debug src/debug_main.cpp $(CPP_FLAGS) $(INC_FLAGS) $(OPT_FLAGS) $(OTH_FLAGS) $(LIBS) $(BOOST_LIBS)
 
 .PHONY: clean
 
