@@ -37,22 +37,22 @@ private:
 	std::list<dvolume_data_ptr>		imgs_;
 	std::list<rw_dvolume_data_ptr>	outs_;
 
-	std::vector<vec3i>				in_szs_	;
-	std::vector<vec3i>				out_szs_;
-	std::vector<vec3i>				FoVs_	;
+	std::vector<vec3i>					in_szs_ ;
+	std::vector<vec3i>					out_szs_;
+	std::vector<vec3i>					FoVs_	  ;
 
-	box								range_;
+	box										range_;
 
-	vec3i							scan_offset_;
-	vec3i							scan_step_	;
-	vec3i							scan_dim_	;				
-	std::vector<scan_coord>			scan_coords_;
-	std::set<vec3i>					scan_locs_	;
-	vec3i							scan_uc_	;
-	vec3i							scan_lc_	;
-	std::list<vec3i>				wait_queue_	;
+	vec3i										scan_offset_;
+	vec3i										scan_step_	;
+	vec3i										scan_dim_	;				
+	std::vector<scan_coord>				scan_coords_;
+	std::set<vec3i>						scan_locs_	;
+	vec3i										scan_uc_		;
+	vec3i										scan_lc_		;
+	std::list<vec3i>						wait_queue_	;
 
-	feature_map_scanner_ptr			fmap_scanner_;
+	feature_map_scanner_ptr				fmap_scanner_;
 
 
 protected:
@@ -86,10 +86,10 @@ protected:
 		set_scanning_locations();
 
 		std::cout << "[volume_forward_scanner]"			<< '\n'
-		  		  << "offset:    " << scan_offset_ 		<< '\n'
-		  		  << "step size: " << scan_step_ 		<< '\n'
-		  		  << "dimension: " << scan_dim_			<< '\n'
-		  		  << "num locs:  " << scan_locs_.size() << std::endl;
+		  		  	 << "offset:    " << scan_offset_ 		<< '\n'
+		  		  	 << "step size: " << scan_step_ 			<< '\n'
+		  		  	 << "dimension: " << scan_dim_			<< '\n'
+		  		  	 << "num locs:  " << scan_locs_.size() << std::endl;
 
 		// build output volumes
 		prepare_outputs();
@@ -100,9 +100,9 @@ protected:
 
 protected:
 	// [12/02/2014 kisukee]
-    // Implementation is still not stable.
-    virtual void boundary_mirroring()
-    {
+   // Implementation is still not stable.
+   virtual void boundary_mirroring()
+   {
     	std::cout << "[volume_forward_scanner] boundary_mirroring" << std::endl;
 
     	std::set<std::size_t> x;
@@ -170,7 +170,7 @@ protected:
 			vec3i in_sz = *it;
 			FoVs_.push_back(in_sz - out_sz + vec3i::one);
 		}
-    }
+   }
 
 protected:
 	void set_scanning_offset()
