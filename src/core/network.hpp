@@ -447,9 +447,10 @@ public:
             // updates/sec
             if ( n_iter_ % op->check_freq == 0 )
             {
+                double speed = wt.elapsed<double>()/tick;
                 std::cout << "[Iter: " << std::setw(count_digit(op->n_iters)) 
-                            << n_iter_ << "] ";
-                std::cout << (wt.elapsed<double>()/tick) << " secs/update\t";
+                          << n_iter_ << "] " << speed << " secs/update\t";
+                train_monitor_->push_speed(speed);
             }
 
             // check error

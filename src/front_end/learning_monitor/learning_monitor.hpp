@@ -28,8 +28,8 @@ namespace znn {
 class learning_monitor
 {
 private:
-    typedef std::vector<double>         err_list;
-    typedef std::vector<std::size_t>    iter_list;
+    typedef std::vector<double>         dbl_list;
+    typedef std::vector<std::size_t>    int_list;
 
 private:
     std::string     name_;
@@ -38,10 +38,11 @@ private:
     double          CLSE_sum_;
     double          num_outs_;
 
-    cost_fn_ptr     cost_fn_ ;
-    err_list        cost_lst_;
-    err_list        CLSE_lst_;  // CLSE: classification error    
-    iter_list       iter_lst_;
+    cost_fn_ptr     cost_fn_  ;
+    dbl_list        cost_lst_ ;
+    dbl_list        CLSE_lst_ ;  // CLSE: classification error
+    int_list        iter_lst_ ;
+    dbl_list        speed_lst_;
 
 public:
     double cost( std::list<double3d_ptr> outs,
@@ -60,6 +61,11 @@ public:
         cost_sum_ += cost_fn_->compute_cost(outs,lbls,msks);
         CLSE_sum_ += cost_fn_->compute_cls_error(outs,lbls,msks,cls_thresh);
         num_outs_ += cost_fn_->get_output_number(msks);
+    }
+
+    void push_speed( double speed )
+    {
+        speed_lst_.push_back(speed);
     }
 
     void reset()
@@ -118,6 +124,11 @@ public:
             std::ofstream fcls(scls.c_str(), WRITE_FLAG);
             fcls.write( reinterpret_cast<const char*>(&CLSE_lst_[0]),
                         sizeof(double)*CLSE_lst_.size() );
+
+            std::string sspeed = path + name_ + ".speed";
+            std::ofstream fspeed(sspeed.c_str(), WRITE_FLAG);
+            fspeed.write( reinterpret_cast<const char*>(&speed_lst_[0]),
+                         sizeof(double)*speed_lst_.size() );
         }
     }
 
