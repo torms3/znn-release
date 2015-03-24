@@ -196,6 +196,12 @@ private:
 			double r  = std::sqrt(6)/std::sqrt(m1+m2);
 			ret = initializer_ptr(new Uniform_init(-r,r));
 		}
+		else if ( spec->init_type == "ReLU" )
+		{
+			double n = g->target_->fan_in();
+			double s  = std::sqrt(2/n);
+			ret = initializer_ptr(new Gaussian_init(0,s));
+		}
 		else if ( spec->init_type == "zero" )
 		{
 			ret = initializer_ptr(new Zero_init);
