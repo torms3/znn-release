@@ -35,6 +35,7 @@ private:
     // to avoid duplicate call of malis()
     std::list<malis_metric> unique_queue_;
 
+
 public:
     virtual std::list<double3d_ptr> gradient( std::list<double3d_ptr> outputs,
                                               std::list<double3d_ptr> labels,

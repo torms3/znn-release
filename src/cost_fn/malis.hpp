@@ -275,6 +275,10 @@ malis( std::list<double3d_ptr> true_affs,
     // (B,N) or (B,B) pairs where B: boundary, N: non-boundary
     // std::size_t n_b_pairs = 0;
 
+    // [kisuklee]
+    // (B,N) or (B,B) pairs where B: boundary, N: non-boundary
+    std::size_t n_b_pairs = 0;
+
     FOR_EACH( it, edges )
     {
         uint32_t set1 = sets.find_set(it->get<1>()); // region A
