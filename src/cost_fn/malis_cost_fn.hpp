@@ -30,10 +30,10 @@ class malis_cost_fn: virtual public cost_fn
 {
 private:
     // margin for hinge loss
-    double              m_;
+    double                  m_;
 
     // to avoid duplicate call of malis()
-    std::list<double>   unique_queue_;
+    std::list<malis_metric> unique_queue_;
 
 public:
     virtual std::list<double3d_ptr> gradient( std::list<double3d_ptr> outputs,
@@ -61,11 +61,11 @@ public:
             unique_queue_.push_back(mp.second);
         }
 
-        double r = unique_queue_.back();
+        malis_metric metric = unique_queue_.back();
         unique_queue_.clear();
 
         double n = get_output_number(masks);
-        return n*r;
+        return n*metric.loss;
     }
 
     virtual void print_cost( double cost )

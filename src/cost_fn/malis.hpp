@@ -149,13 +149,31 @@ get_segmentation( std::list<double3d_ptr> affs,
     return ids_ptr;
 }
 
-typedef std::pair<std::list<double3d_ptr>, double> malis_pair;
+struct malis_metric
+{
+    double loss;
+
+    double nTP;
+    double nFP;
+    double nFN;
+    double nTN;
+    
+    malis_metric()
+        : loss(0)
+        , nTP(0)
+        , nFP(0)
+        , nFN(0)
+        , nTN(0)
+    {}
+};
+
+typedef std::pair<std::list<double3d_ptr>, malis_metric> malis_pair;
 
 inline malis_pair
 malis( std::list<double3d_ptr> true_affs,
        std::list<double3d_ptr> affs,
        std::list<bool3d_ptr>   masks,
-       double margin)
+       double margin )
 {
     double loss = 0;
     long3d_ptr seg_ptr = get_segmentation(true_affs, masks);
@@ -182,22 +200,36 @@ malis( std::list<double3d_ptr> true_affs,
     affs.push_back(yres);
     affs.push_back(zres);
 
-    zi::disjoint_sets<uint32_t> sets(n+1);
-    std::vector<uint32_t>       sizes(n+1);
+    zi::disjoint_sets<uint32_t>     sets(n+1);
+    std::vector<uint32_t>           sizes(n+1);
+    std::map<uint32_t, uint32_t>    seg_sizes;
     std::vector<std::map<uint32_t, uint32_t> > contains(n+1);
 
 
     long3d_ptr ids_ptr = volume_pool.get_long3d(s);
     long3d& ids = *ids_ptr;
 
+    std::size_t n_lbl_vert = 0;
+    std::size_t n_pair_pos = 0;
+
     for ( std::size_t i = 0; i < n; ++i )
     {
         ids.data()[i] = i+1;
         sizes[i+1] = 1;
         contains[i+1][seg.data()[i]] = 1;
+
+        // non-boundary
+        if ( seg.data()[i] != 0 )
+        {
+            ++n_lbl_vert;
+            ++seg_sizes[seg.data()[i]];
+            n_pair_pos += (seg_sizes[seg.data()[i]] - 1);
+        }
     }
 
-    std::size_t n_pairs = n*(n-1)/2;
+    // std::size_t n_pairs = n*(n-1)/2;
+    std::size_t n_pair_lbl = n_lbl_vert*(n_lbl_vert-1)/2;
+    // std::size_t n_pair_neg = n_pair_lbl - n_pair_pos;
 
     typedef boost::tuple<double,uint32_t,uint32_t,double*> edge_type;
     typedef std::greater<edge_type>                        edge_compare;
@@ -233,11 +265,15 @@ malis( std::list<double3d_ptr> true_affs,
 
     std::sort(edges.begin(), edges.end(), edge_compare());
 
-    std::size_t incorrect = 0;
+    // std::size_t incorrect = 0;
+    std::size_t nTP = 0;
+    std::size_t nFP = 0;
+    std::size_t nFN = 0;
+    std::size_t nTN = 0;
 
     // [kisuklee]
     // (B,N) or (B,B) pairs where B: boundary, N: non-boundary
-    std::size_t n_b_pairs = 0;
+    // std::size_t n_b_pairs = 0;
 
     FOR_EACH( it, edges )
     {
@@ -256,7 +292,7 @@ malis( std::list<double3d_ptr> true_affs,
                 {
                     std::size_t pairs = sit->second * sizes[set2];
                     n_pair_diff -= pairs;
-                    n_b_pairs   += pairs;
+                    // n_b_pairs   += pairs;
                 }
                 else // non-boundary
                 {
@@ -271,31 +307,54 @@ malis( std::list<double3d_ptr> true_affs,
                     {
                         std::size_t pairs = sit->second * contains[set2][0];
                         n_pair_diff -= pairs;
-                        n_b_pairs   += pairs;
+                        // n_b_pairs   += pairs;
                     }
                 }
             }
 
             if ( (it->get<0>()) > 0.5 )
             {
-                incorrect += n_pair_diff;
+                // incorrect += n_pair_diff;
+                nTP += n_pair_same;
+                nFP += n_pair_diff;
             }
             else
             {
-                incorrect += n_pair_same;
+                // incorrect += n_pair_same;
+                nTN += n_pair_diff;
+                nFN += n_pair_same;
             }
 
             double* p = it->get<3>();
 
-            // delta(s_i,s_j) = 1
-            double dl = -std::max(0.0,0.5+margin-(it->get<0>()));
-            *p   += dl*n_pair_same;
-            loss += dl*dl*0.5*n_pair_same;
+            // square-square loss
+            // {
+            //     // delta(s_i,s_j) = 1
+            //     double dl = -std::max(0.0,0.5+margin-(it->get<0>()));
+            //     *p   += dl*n_pair_same;
+            //     loss += dl*dl*0.5*n_pair_same;
 
-            // delta(s_i,s_j) = 0
-            dl = std::max(0.0,(it->get<0>())-0.5+margin);
-            *p   += dl*n_pair_diff;
-            loss += dl*dl*0.5*n_pair_diff;
+            //     // delta(s_i,s_j) = 0
+            //     dl = std::max(0.0,(it->get<0>())-0.5+margin);
+            //     *p   += dl*n_pair_diff;
+            //     loss += dl*dl*0.5*n_pair_diff;
+            // }
+
+            // hinge loss
+            {
+                // delta(s_i,s_j) = 1
+                double dl = std::max(0.0,0.5+margin-(it->get<0>()));
+                *p   -= (dl > 0)*n_pair_same;
+                loss += dl*n_pair_same;
+
+                // delta(s_i,s_j) = 0
+                dl = std::max(0.0,(it->get<0>())-0.5+margin);
+                *p   += (dl > 0)*n_pair_diff;
+                loss += dl*n_pair_diff;   
+            }
+
+            // normlize gradient
+            *p /= n_pair_lbl;
 
             uint32_t new_set = sets.join(set1, set2);
             sizes[set1] += sizes[set2];
@@ -312,9 +371,16 @@ malis( std::list<double3d_ptr> true_affs,
         }
     }
 
-    std::size_t n_eff_pairs = n_pairs - n_b_pairs;
+    // std::size_t n_eff_pairs = n_pairs - n_b_pairs;
+    
+    malis_metric metric;
+    metric.loss = loss/n_pair_lbl;
+    metric.nTP  = nTP;
+    metric.nFP  = nFP;
+    metric.nFN  = nFN;
+    metric.nTN  = nTN;
 
-    return std::make_pair(affs, loss/n_eff_pairs);
+    return std::make_pair(affs, metric);
 }
 
 
