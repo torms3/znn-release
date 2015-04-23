@@ -521,7 +521,7 @@ public:
 
             // output file name
             std::ostringstream batch;
-            batch << op->save_path << op->outname << idx << op->subname;
+            batch << op->outname << idx << op->subname;
 
             // save feature maps
             if ( op->scan_fmaps )
@@ -536,7 +536,7 @@ public:
             }
             else // save output
             {
-                scanner->save(batch.str());
+                scanner->save(op->save_path + batch.str());
             }
         }
     }
