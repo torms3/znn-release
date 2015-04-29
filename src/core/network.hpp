@@ -78,11 +78,11 @@ private:
 
 
 private:
-    void load_inputs( const std::string& fname, batch_list batches )
+    void load_inputs()
     {
-        FOR_EACH( it, batches )
+        FOR_EACH( it, op->get_batch_range() )
         {
-            load_input(fname, *it);
+            load_input(*it);
         }
 
         if ( inputs_.empty() )
@@ -92,15 +92,29 @@ private:
         }
     }
 
-    void load_input( const std::string& fname, int n )
+    void load_input( int n )
     {
         // data spec
-        std::ostringstream ssbatch;
-        ssbatch << fname << n << ".spec";
+        std::string batch_name = op->data_path;
+        std::size_t batch_num  = 0;
+
+        if ( op->batch_template )
+        {
+            batch_num = n;
+        }
+        else
+        {
+            batch_name += boost::lexical_cast<std::string>(n);
+        }
+
+        batch_name += ".spec";
+
+        // data spec parser        
+        data_spec_parser parser(batch_name,batch_num);
 
         // loading
         std::cout << "[network] load_input" << std::endl;
-        std::cout << "Loading [" << ssbatch.str() << "]" << std::endl;
+        std::cout << "Loading [" << batch_name << "]" << std::endl;
         
         // inputs
         std::vector<vec3i> in_szs = net_->input_sizes();
@@ -123,7 +137,7 @@ private:
         if ( op->dp_type == "volume" )
         {
             volume_data_provider* dp =
-                new volume_data_provider(ssbatch.str(),in_szs,out_szs,op->mirroring);
+                new volume_data_provider(parser,in_szs,out_szs,op->mirroring);
             
             dp->data_augmentation(op->data_aug);
             
@@ -132,7 +146,7 @@ private:
         else if ( op->dp_type == "affinity" )
         {
             affinity_data_provider* dp =
-                new affinity_data_provider(ssbatch.str(),in_szs,out_szs,op->mirroring);
+                new affinity_data_provider(parser,in_szs,out_szs,op->mirroring);
             
             dp->data_augmentation(op->data_aug);
             
@@ -165,8 +179,22 @@ private:
     void load_test_input( int n )
     {
         // data spec
-        std::ostringstream ssbatch;
-        ssbatch << op->data_path << n << ".spec";
+        std::string batch_name = op->data_path;
+        std::size_t batch_num  = 0;
+
+        if ( op->batch_template )
+        {
+            batch_num = n;
+        }
+        else
+        {
+            batch_name += boost::lexical_cast<std::string>(n);
+        }
+        
+        batch_name += ".spec";
+
+        // data spec parser        
+        data_spec_parser parser(batch_name,batch_num);
         
         // inputs
         std::vector<vec3i> in_szs = net_->input_sizes();
@@ -189,7 +217,7 @@ private:
         if ( op->scanner == "volume" )
         {
             scanners_[n] = forward_scanner_ptr(new 
-                volume_forward_scanner(ssbatch.str(),
+                volume_forward_scanner(parser,
                                        in_szs,out_szs,
                                        op->scan_offset,
                                        op->subvol_dim,
@@ -302,21 +330,19 @@ private:
                 
                 double t = run_n_times(run_times, sample, scanning);
                 line << "   when using ffts   : " << best << "\n"
-                     << "   when using bf_conv: " << t;
-                FILE_AND_CONSOLE( fout, line );
+                     << "   when using bf_conv: " << t;                
 
                 if ( t < best )
                 {
                     best = t;
-                    line << "   will use bf_conv";
-                    FILE_AND_CONSOLE( fout, line );
+                    line << "   will use bf_conv";                    
                 }
                 else
                 {
-                    line << "   will use ffts";
-                    FILE_AND_CONSOLE( fout, line );
+                    line << "   will use ffts";                    
                     (*it)->receives_fft(true);
                 }
+                FILE_AND_CONSOLE( fout, line );
             }   
         }
 
@@ -425,7 +451,7 @@ public:
         net_->save(op->save_path);
 
         // load data batches for training
-        load_inputs(op->data_path,op->get_batch_range());        
+        load_inputs();
         
         // learning rate, momentum, weight decay, fft ...
         prepare_training();
@@ -449,9 +475,10 @@ public:
             // updates/sec
             if ( n_iter_ % op->check_freq == 0 )
             {
+                double speed = wt.elapsed<double>()/tick;
                 std::cout << "[Iter: " << std::setw(count_digit(op->n_iters)) 
-                            << n_iter_ << "] ";
-                std::cout << (wt.elapsed<double>()/tick) << " secs/update\t";
+                          << n_iter_ << "] " << speed << " secs/update\t";
+                train_monitor_->push_speed(speed);
             }
 
             // check error
@@ -520,6 +547,10 @@ public:
                           << " secs" << std::endl;
             }
 
+            // output file name
+            std::ostringstream batch;
+            batch << op->outname << idx << op->subname;
+
             // save feature maps
             if ( op->scan_fmaps )
             {
@@ -529,13 +560,11 @@ public:
                 {
                     boost::filesystem::create_directory(fmaps_dir);
                 }
-                scanner->save_feature_maps(fmaps_path);
+                scanner->save_feature_maps(fmaps_path + batch.str() + ".");
             }
             else // save output
             {
-                std::ostringstream batch;
-                batch << op->save_path << op->outname << idx << op->subname;
-                scanner->save(batch.str());
+                scanner->save(op->save_path + batch.str());
             }
         }
     }
@@ -689,7 +718,7 @@ public:
         //     if ( op->cost_fn == "cross_entropy" )
         //     {
         //         double3d_ptr rbmask = 
-        //             volume_utils::multinomial_rebalance_mask(s->labels);
+        //             volume_utils::multinomial_rebalance_mask(s->labels, s->masks);
 
         //         FOR_EACH( it, grads )
         //         {
@@ -699,7 +728,7 @@ public:
         //     else
         //     {
         //         std::list<double3d_ptr> rbmask = 
-        //             volume_utils::binomial_rebalance_mask(s->labels);
+        //             volume_utils::binomial_rebalance_mask(s->labels, s->masks);
 
         //         std::list<double3d_ptr>::iterator rbmit = rbmask.begin();
         //         FOR_EACH( it, grads )

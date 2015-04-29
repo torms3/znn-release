@@ -32,7 +32,11 @@ protected:
 	virtual void load( const std::string& fname )
 	{
 		data_spec_parser parser(fname);
+		load(parser);
+	}
 
+	void load( const data_spec_parser& parser )
+	{
 		// inputs
 		FOR_EACH( it, parser.input_specs )
 		{
@@ -204,7 +208,7 @@ protected:
 
 // constructor & destructor
 public:
-	affinity_data_provider( const std::string& fname, 
+	affinity_data_provider( const data_spec_parser& parser, 
 						    std::vector<vec3i> in_szs,
 						    std::vector<vec3i> out_szs,
 						    bool mirroring = false )
@@ -213,7 +217,7 @@ public:
 		in_szs_ = in_szs;
 		out_szs_ = out_szs;
 		set_FoVs();
-		load(fname);
+		load(parser);
 		init(mirroring);
 	}
 

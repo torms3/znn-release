@@ -332,30 +332,30 @@ malis( std::list<double3d_ptr> true_affs,
             double* p = it->get<3>();
 
             // square-square loss
+            {
+                // delta(s_i,s_j) = 1
+                double dl = -std::max(0.0,1.0-margin-(it->get<0>()));
+                *p   += dl*n_pair_same;
+                loss += dl*dl*0.5*n_pair_same;
+
+                // delta(s_i,s_j) = 0
+                dl = std::max(0.0,(it->get<0>())-margin);
+                *p   += dl*n_pair_diff;
+                loss += dl*dl*0.5*n_pair_diff;
+            }
+
+            // hinge loss
             // {
             //     // delta(s_i,s_j) = 1
-            //     double dl = -std::max(0.0,0.5+margin-(it->get<0>()));
-            //     *p   += dl*n_pair_same;
-            //     loss += dl*dl*0.5*n_pair_same;
+            //     double dl = std::max(0.0,0.5+margin-(it->get<0>()));
+            //     *p   -= (dl > 0)*n_pair_same;
+            //     loss += dl*n_pair_same;
 
             //     // delta(s_i,s_j) = 0
             //     dl = std::max(0.0,(it->get<0>())-0.5+margin);
-            //     *p   += dl*n_pair_diff;
-            //     loss += dl*dl*0.5*n_pair_diff;
+            //     *p   += (dl > 0)*n_pair_diff;
+            //     loss += dl*n_pair_diff;   
             // }
-
-            // hinge loss
-            {
-                // delta(s_i,s_j) = 1
-                double dl = std::max(0.0,0.5+margin-(it->get<0>()));
-                *p   -= (dl > 0)*n_pair_same;
-                loss += dl*n_pair_same;
-
-                // delta(s_i,s_j) = 0
-                dl = std::max(0.0,(it->get<0>())-0.5+margin);
-                *p   += (dl > 0)*n_pair_diff;
-                loss += dl*n_pair_diff;   
-            }
 
             // normlize gradient
             *p /= n_pair_lbl;

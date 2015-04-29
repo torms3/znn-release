@@ -63,44 +63,48 @@ protected:
 	virtual void load( const std::string& fname )
 	{
 		data_spec_parser parser(fname);
-
-		// inputs
-		FOR_EACH( it, parser.input_specs )
-		{
-			std::cout << "Loading input [" << (*it)->name << "]" << std::endl;
-			std::list<dvolume_data_ptr> vols = data_builder::build_volume(*it);
-			FOR_EACH( jt, vols )
-			{
-				add_image(*jt);
-			}
-			std::cout << std::endl;
-		}
-			
-		// labels (and rebalanced weight masks)
-		FOR_EACH( it, parser.label_specs )
-		{
-			std::cout << "Loading label [" << (*it)->name << "]" << std::endl;			
-			std::list<dvolume_data_ptr> vols = data_builder::build_volume(*it);
-			FOR_EACH( jt, vols )
-			{
-				add_label(*jt);
-				add_wmask(*jt);
-			}
-			std::cout << std::endl;
-		}
-
-		// masks
-		FOR_EACH( it, parser.mask_specs )
-		{
-			std::cout << "Loading mask [" << (*it)->name << "]" << std::endl;			
-			std::list<bvolume_data_ptr> vols = data_builder::build_mask(*it);
-			FOR_EACH( jt, vols )
-			{
-				add_mask(*jt);
-			}
-			std::cout << std::endl;
-		}
+        load(parser);
 	}
+
+    void load( const data_spec_parser& parser )
+    {
+        // inputs
+        FOR_EACH( it, parser.input_specs )
+        {
+            std::cout << "Loading input [" << (*it)->name << "]" << std::endl;
+            std::list<dvolume_data_ptr> vols = data_builder::build_volume(*it);
+            FOR_EACH( jt, vols )
+            {
+                add_image(*jt);
+            }
+            std::cout << std::endl;
+        }
+            
+        // labels
+        FOR_EACH( it, parser.label_specs )
+        {
+            std::cout << "Loading label [" << (*it)->name << "]" << std::endl;          
+            std::list<dvolume_data_ptr> vols = data_builder::build_volume(*it);
+            FOR_EACH( jt, vols )
+            {
+                add_label(*jt);
+                add_wmask(*jt);
+            }
+            std::cout << std::endl;
+        }
+
+        // masks
+        FOR_EACH( it, parser.mask_specs )
+        {
+            std::cout << "Loading mask [" << (*it)->name << "]" << std::endl;           
+            std::list<bvolume_data_ptr> vols = data_builder::build_mask(*it);
+            FOR_EACH( jt, vols )
+            {
+                add_mask(*jt);
+            }
+            std::cout << std::endl;
+        }
+    }
 
 
 // data augmentation
@@ -256,6 +260,9 @@ protected:
         // valid locations
         collect_valid_locations();
 
+        // global rebalancing
+        // global_rebalancing();
+
         initialized_ = true;
     }
 
@@ -363,6 +370,17 @@ protected:
                   << wt.elapsed<double>() << " secs)\n" << std::endl;
     }
 
+    // void global_rebalancing()
+    // {
+    //     std::cout << "[volume_data_provider] global_rebalancing" << std::endl;
+    //     zi::wall_timer wt;
+
+    //     update_range();
+
+    //     std::cout << "Completed. (Elapsed time: " 
+    //               << wt.elapsed<double>() << " secs)\n" << std::endl;
+    // }
+
     void set_FoVs()
     {
 		vec3i out_sz = out_szs_.front();
@@ -434,19 +452,19 @@ public:
 		, trans_()
 	{}
 
-	volume_data_provider( const std::string& fname, 
-						  std::vector<vec3i> in_szs,
-						  std::vector<vec3i> out_szs,
-						  bool mirroring = false )
-		: in_szs_(in_szs)
-		, out_szs_(out_szs)
-		, initialized_(false)
-		, trans_()
-	{
-		set_FoVs();
-		load(fname);
-		init(mirroring);
-	}
+    volume_data_provider( const data_spec_parser& parser,
+                          std::vector<vec3i> in_szs,
+                          std::vector<vec3i> out_szs,
+                          bool mirroring = false )
+        : in_szs_(in_szs)
+        , out_szs_(out_szs)
+        , initialized_(false)
+        , trans_()
+    {
+        set_FoVs();
+        load(parser);
+        init(mirroring);
+    }
 
 	virtual ~volume_data_provider()
 	{}
