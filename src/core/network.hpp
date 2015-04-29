@@ -547,6 +547,10 @@ public:
                           << " secs" << std::endl;
             }
 
+            // output file name
+            std::ostringstream batch;
+            batch << op->outname << idx << op->subname;
+
             // save feature maps
             if ( op->scan_fmaps )
             {
@@ -556,13 +560,11 @@ public:
                 {
                     boost::filesystem::create_directory(fmaps_dir);
                 }
-                scanner->save_feature_maps(fmaps_path);
+                scanner->save_feature_maps(fmaps_path + batch.str() + ".");
             }
             else // save output
             {
-                std::ostringstream batch;
-                batch << op->save_path << op->outname << idx << op->subname;
-                scanner->save(batch.str());
+                scanner->save(op->save_path + batch.str());
             }
         }
     }
