@@ -51,6 +51,7 @@ public:
 	std::string 		data_path;
 	std::string 		save_path;
 	std::string 		hist_path;
+	bool				batch_template;
 
 	// [OPTIMIZE]
 	std::size_t 		n_threads;
@@ -142,6 +143,7 @@ private:
 	        ("PATH.data",value<std::string>(&data_path)->default_value(""),"Data path")
 	        ("PATH.save",value<std::string>(&save_path)->default_value(""),"Save path")
 	        ("PATH.hist",value<std::string>(&hist_path)->default_value(""),"Save time-stamped network")
+	        ("PATH.batch_template",value<bool>(&batch_template)->default_value(false),"Batch template")
 	        // OPTIMIZE
 	        ("OPTIMIZE.n_threads",value<std::size_t>(&n_threads)->default_value(16),"Number of threads")
 	        ("OPTIMIZE.force_fft",value<bool>(&force_fft)->default_value(false),"Force all FFTs")
@@ -262,6 +264,7 @@ public:
         		   << "data=" << rhs.data_path << '\n'
         		   << "save=" << rhs.save_path << '\n'
         		   << "hist=" << rhs.hist_path << '\n'
+        		   << "batch_template=" << rhs.batch_template << '\n'
         		   << "\n[OPTIMIZE]\n"
         		   << "n_threads=" << rhs.n_threads << '\n'
         		   << "force_fft=" << rhs.force_fft << '\n'

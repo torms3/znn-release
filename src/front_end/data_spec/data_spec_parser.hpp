@@ -44,7 +44,7 @@ public:
 
 
 private:
-	bool parse_config()
+	bool parse_config( std::size_t batch = 0 )
 	{
 		std::ifstream fin(config_.c_str());
 		if ( !fin )	return false;
@@ -61,7 +61,7 @@ private:
 		while ( it != jt )
 		{
 			std::string name = strip_brackets((*it++).str());
-			data_spec_ptr spec = data_spec_ptr(new data_spec(name));
+			data_spec_ptr spec = data_spec_ptr(new data_spec(name,batch));
 			STRONG_ASSERT( spec->build(config_) );
 
 			if ( std::string::npos != name.find("INPUT") )
@@ -86,10 +86,10 @@ private:
 
 
 public:
-	data_spec_parser( const std::string& config )
+	data_spec_parser( const std::string& config, std::size_t batch = 0 )
 		: config_(config)
 	{
-		if ( !parse_config() )
+		if ( !parse_config(batch) )
 		{
 			std::string what 
 				= "Failed to parse data spec file [" + config + "]";

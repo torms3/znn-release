@@ -78,11 +78,11 @@ private:
 
 
 private:
-    void load_inputs( const std::string& fname, batch_list batches )
+    void load_inputs()
     {
-        FOR_EACH( it, batches )
+        FOR_EACH( it, op->get_batch_range() )
         {
-            load_input(fname, *it);
+            load_input(*it);
         }
 
         if ( inputs_.empty() )
@@ -92,15 +92,29 @@ private:
         }
     }
 
-    void load_input( const std::string& fname, int n )
+    void load_input( int n )
     {
         // data spec
-        std::ostringstream ssbatch;
-        ssbatch << fname << n << ".spec";
+        std::string batch_name = op->data_path;
+        std::size_t batch_num  = 0;
+
+        if ( op->batch_template )
+        {
+            batch_num = n;
+        }
+        else
+        {
+            batch_name += boost::lexical_cast<std::string>(n);
+        }
+
+        batch_name += ".spec";
+
+        // data spec parser        
+        data_spec_parser parser(batch_name,batch_num);
 
         // loading
         std::cout << "[network] load_input" << std::endl;
-        std::cout << "Loading [" << ssbatch.str() << "]" << std::endl;
+        std::cout << "Loading [" << batch_name << "]" << std::endl;
         
         // inputs
         std::vector<vec3i> in_szs = net_->input_sizes();
@@ -123,7 +137,7 @@ private:
         if ( op->dp_type == "volume" )
         {
             volume_data_provider* dp =
-                new volume_data_provider(ssbatch.str(),in_szs,out_szs,op->mirroring);
+                new volume_data_provider(parser,in_szs,out_szs,op->mirroring);
             
             dp->data_augmentation(op->data_aug);
             
@@ -132,7 +146,7 @@ private:
         else if ( op->dp_type == "affinity" )
         {
             affinity_data_provider* dp =
-                new affinity_data_provider(ssbatch.str(),in_szs,out_szs,op->mirroring);
+                new affinity_data_provider(parser,in_szs,out_szs,op->mirroring);
             
             dp->data_augmentation(op->data_aug);
             
@@ -165,8 +179,22 @@ private:
     void load_test_input( int n )
     {
         // data spec
-        std::ostringstream ssbatch;
-        ssbatch << op->data_path << n << ".spec";
+        std::string batch_name = op->data_path;
+        std::size_t batch_num  = 0;
+
+        if ( op->batch_template )
+        {
+            batch_num = n;
+        }
+        else
+        {
+            batch_name += boost::lexical_cast<std::string>(n);
+        }
+        
+        batch_name += ".spec";
+
+        // data spec parser        
+        data_spec_parser parser(batch_name,batch_num);
         
         // inputs
         std::vector<vec3i> in_szs = net_->input_sizes();
@@ -189,7 +217,7 @@ private:
         if ( op->scanner == "volume" )
         {
             scanners_[n] = forward_scanner_ptr(new 
-                volume_forward_scanner(ssbatch.str(),
+                volume_forward_scanner(parser,
                                        in_szs,out_szs,
                                        op->scan_offset,
                                        op->subvol_dim,
@@ -423,7 +451,7 @@ public:
         net_->save(op->save_path);
 
         // load data batches for training
-        load_inputs(op->data_path,op->get_batch_range());        
+        load_inputs();
         
         // learning rate, momentum, weight decay, fft ...
         prepare_training();
