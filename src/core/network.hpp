@@ -80,7 +80,8 @@ private:
 private:
     void load_inputs()
     {
-        FOR_EACH( it, op->get_batch_range() )
+	batch_list batches = op->get_batch_range();
+        FOR_EACH( it, batches )
         {
             load_input(*it);
         }
