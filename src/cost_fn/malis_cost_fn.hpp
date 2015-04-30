@@ -29,7 +29,7 @@ namespace znn {
 class malis_cost_fn: virtual public cost_fn
 {
 private:
-    // margin for hinge loss
+    // margin
     double                  m_;
 
     // to avoid duplicate call of malis()
