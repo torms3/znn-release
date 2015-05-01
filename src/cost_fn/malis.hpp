@@ -277,7 +277,7 @@ malis( std::list<double3d_ptr> true_affs,
 
     // [kisuklee]
     // (B,N) or (B,B) pairs where B: boundary, N: non-boundary
-    std::size_t n_b_pairs = 0;
+    // std::size_t n_b_pairs = 0;
 
     FOR_EACH( it, edges )
     {
