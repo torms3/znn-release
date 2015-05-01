@@ -22,6 +22,7 @@
 #include <zi/zargs/parser.hpp>
 
 #include <boost/program_options.hpp>
+#include <boost/lexical_cast.hpp>
 
 
 namespace zi {
@@ -30,9 +31,10 @@ namespace znn {
 class data_spec
 {
 public:
-	const std::string	name;
+	const std::string	name;	
 	std::string 		path;		// file path
-	std::string 		ext;		// file extension (path.ext)
+	std::size_t			batch;		// batch number
+	std::string 		ext;		// file extension (path.ext)	
 	vec3i 				size;		// data size
 	vec3i				offset;		// offset w.r.t. global origin
 
@@ -68,10 +70,33 @@ public:
 	std::string get_path() const
 	{
 		std::string ret = path;
+
+		// append batch number, if exists
+		if ( batch > 0 )
+		{
+			ret = ret + boost::lexical_cast<std::string>(batch);
+		}
+
+		// append extension, if exists
 		if ( !ext.empty() )
 		{
 			ret = ret + "." + ext;
 		}
+
+		return ret;
+	}
+
+private:
+	std::string get_size_path() const
+	{
+		std::string ret = path;
+
+		// append batch number, if exists
+		if ( batch > 0 )
+		{
+			ret = ret + boost::lexical_cast<std::string>(batch);
+		}
+
 		return ret;
 	}
 
@@ -82,7 +107,7 @@ private:
 		using namespace boost::program_options;
 
 		desc_.add_options()			
-	        ((name+".path").c_str(),value<std::string>(&path)->default_value(""),"path")
+	        ((name+".path").c_str(),value<std::string>(&path)->default_value(""),"path")	        
 	        ((name+".ext").c_str(),value<std::string>(&ext)->default_value(""),"ext")
 	        ((name+".size").c_str(),value<std::string>()->default_value("0,0,0"),"size")
 	        ((name+".offset").c_str(),value<std::string>()->default_value("0,0,0"),"offset")
@@ -128,7 +153,7 @@ private:
 		// read size info. from file (.size)
 		if ( size == vec3i::zero )
 		{
-			size = import_size_info(path);
+			size = import_size_info(get_size_path());
 		}
 
 		if ( size[0]*size[1]*size[2] == 0 )
@@ -155,7 +180,7 @@ public:
 	operator<<( std::ostream& os, const data_spec& rhs )
 	{
 		return (os << "[" << rhs.name << "]" << '\n'
-        		   << "path=" << rhs.path << '\n'
+        		   << "path=" << rhs.path << '\n'        		   
         		   << "ext=" << rhs.ext << '\n'
         		   << "size=" << vec3i_to_string(rhs.size) << '\n'
         		   << "offset=" << vec3i_to_string(rhs.offset) << '\n'
@@ -165,8 +190,9 @@ public:
 
 
 public:
-	data_spec( const std::string& _name )
+	data_spec( const std::string& _name, std::size_t _batch = 0 )
 		: name(_name)
+		, batch(_batch)		
 		, size(vec3i::zero)
 		, offset(vec3i::zero)
 	{

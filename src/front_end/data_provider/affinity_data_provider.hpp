@@ -32,7 +32,11 @@ protected:
 	virtual void load( const std::string& fname )
 	{
 		data_spec_parser parser(fname);
+		load(parser);
+	}
 
+	void load( const data_spec_parser& parser )
+	{
 		// inputs
 		FOR_EACH( it, parser.input_specs )
 		{
@@ -152,7 +156,7 @@ protected:
 
 
 protected:
-	virtual void add_label( dvolume_data_ptr lbl, vec3i sft = vec3i::zero )
+	void add_label( dvolume_data_ptr lbl, vec3i sft )
 	{
 		std::size_t idx = lbls_.size();
 		STRONG_ASSERT(idx < out_szs_.size());
@@ -166,7 +170,7 @@ protected:
 		lbls_.push_back(lbl);
 	}
 
-	virtual void add_mask( bvolume_data_ptr msk, vec3i sft = vec3i::zero )
+	void add_mask( bvolume_data_ptr msk, vec3i sft )
 	{
 		std::size_t idx = msks_.size();
 		STRONG_ASSERT(idx < out_szs_.size());
@@ -180,7 +184,7 @@ protected:
 		msks_.push_back(msk);
 	}
 
-	virtual void add_wmask( dvolume_data_ptr lbl, vec3i sft = vec3i::zero )
+	void add_wmask( dvolume_data_ptr lbl, vec3i sft )
 	{
 		std::size_t idx = wmsks_.size();
 		STRONG_ASSERT(idx < out_szs_.size());
@@ -204,7 +208,7 @@ protected:
 
 // constructor & destructor
 public:
-	affinity_data_provider( const std::string& fname, 
+	affinity_data_provider( const data_spec_parser& parser, 
 						    std::vector<vec3i> in_szs,
 						    std::vector<vec3i> out_szs,
 						    bool mirroring = false )
@@ -213,7 +217,7 @@ public:
 		in_szs_ = in_szs;
 		out_szs_ = out_szs;
 		set_FoVs();
-		load(fname);
+		load(parser);
 		init(mirroring);
 	}
 

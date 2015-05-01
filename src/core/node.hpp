@@ -255,8 +255,18 @@ private:
 
     double mom_;
     double v_  ;
-    double wc_ ;    
+    double wc_ ;
     double szB_;
+
+    // Dropout
+    bool dropout_;
+    bool inference_;
+
+    // Dropout rate
+    double p_;
+
+    // Dropout mask
+    bool3d_ptr mask_;
     
 public:
     node(const std::string& name, double bias = 0.01, double eta = 0.0001,
@@ -295,6 +305,10 @@ public:
         , v_(0.0)
         , wc_(wc)
         , szB_(szB)
+        , dropout_(false)
+        , inference_(false)
+        , p_(0.5)
+        , mask_()
     {
         real_filter_size_ = (filter_size_-vec3i::one)*sparse_+vec3i::one;
     }
@@ -525,6 +539,36 @@ public:
     std::size_t count_out_edges() const
     {
         return out_edges_.size();
+    }
+
+    bool get_dropout() const
+    {
+        return dropout_;
+    }
+
+    void set_dropout(bool b)
+    {
+        dropout_ = b;
+    }
+    
+    bool get_inference() const
+    {
+        return inference_;
+    }
+
+    void set_inference(bool b)
+    {
+        inference_ = b;
+    }
+
+    double get_dropout_rate() const
+    {
+        return p_;
+    }
+
+    void set_dropout_rate(double p)
+    {
+        p_ = p;
     }
 
 private:
@@ -863,6 +907,14 @@ private:
             f_ = fandi.first;
             filter_indices_ = fandi.second;
         }
+
+        // Dropout
+        if ( dropout_ && !inference_ )
+        {
+            // 1. draw a new dropout mask 
+            // 2. apply it to the activation
+            mask_ = volume_utils::dropout(f_, p_);
+        }
         
         ZI_ASSERT((in_received_==0)&&(out_received_==0));
         ++pass_no_;
@@ -894,6 +946,14 @@ private:
     {
         ZI_ASSERT((in_received_==0)&&(out_received_==0));
         ++pass_no_;
+
+        // Dropout
+        if ( dropout_ && !inference_ )
+        {
+            double scale = static_cast<double>(1)/(static_cast<double>(1) - p_);            
+            volume_utils::elementwise_masking(dEdX_, mask_);
+            volume_utils::elementwise_mul_by(dEdX_, scale);
+        }
 
         dEdX_ = error_fn_->gradient(dEdX_, f_);
 

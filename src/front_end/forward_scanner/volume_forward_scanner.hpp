@@ -63,7 +63,11 @@ protected:
 	virtual void load( const std::string& fname )
 	{
 		data_spec_parser parser(fname);
+		load(parser);
+	}
 
+	void load( const data_spec_parser& parser )
+	{
 		// inputs
 		FOR_EACH( it, parser.input_specs )
 		{
@@ -419,7 +423,7 @@ private:
 
 
 public:	
-	volume_forward_scanner( const std::string& load_path,
+	volume_forward_scanner( const data_spec_parser& parser,
 						    std::vector<vec3i> in_szs,
 						    std::vector<vec3i> out_szs,
 						    vec3i off,
@@ -434,7 +438,7 @@ public:
 		, counter_(0)
 	{
 		set_FoVs();
-		load(load_path);
+		load(parser);
 		init(mirroring);
 	}
 

@@ -24,6 +24,7 @@
 #include "utils.hpp"
 #include "measure.hpp"
 #include "volume_pool.hpp"
+#include "../initializer/initializer.hpp"
 
 #include <zi/parallel/numeric.hpp>
 #include <zi/parallel/algorithm.hpp>
@@ -248,6 +249,35 @@ inline double sum_all(std::list<double3d_ptr> a)
     FOR_EACH( it, a )
     {
         ret += volume_utils::sum_all(*it);
+    }
+    return ret;
+}
+
+inline double sum_all(double3d_ptr a, bool3d_ptr b)
+{
+    PROFILE_FUNCTION();
+    ASSERT_SAME_SIZE(a,b);
+    
+    double ret = static_cast<double>(0);
+    std::size_t n = a->num_elements();
+    for ( std::size_t i = 0; i < n; ++i )
+    {
+        if ( b->data()[i] )
+        {
+            ret += a->data()[i];
+        }
+    }
+    return ret;
+}
+
+inline double sum_all(std::list<double3d_ptr> a,
+                      std::list<bool3d_ptr>   b)
+{
+    double ret = static_cast<double>(0);
+    std::list<bool3d_ptr>::iterator mit = b.begin();
+    FOR_EACH( it, a )
+    {
+        ret += volume_utils::sum_all(*it, *mit++);
     }
     return ret;
 }
@@ -1475,6 +1505,9 @@ double3d_ptr mirror_boundary( double3d_ptr vol, vec3i RF )
 inline double3d_ptr 
 binomial_rebalance_mask( double3d_ptr lbl, double thresh = 0.5 )
 {
+    double one  = static_cast<double>(1);
+    double zero = static_cast<double>(0);
+
     double3d_ptr pos = volume_pool.get_double3d(lbl);
     double3d_ptr neg = volume_pool.get_double3d(lbl);
 
@@ -1482,9 +1515,10 @@ binomial_rebalance_mask( double3d_ptr lbl, double thresh = 0.5 )
     for ( std::size_t i = 0; i < n; ++i )
     {
         bool b = lbl->data()[i] > thresh;
-        pos->data()[i] = b ? static_cast<double>(1):static_cast<double>(0);
-        neg->data()[i] = b ? static_cast<double>(0):static_cast<double>(1);
+        pos->data()[i] = b ? one:zero;
+        neg->data()[i] = b ? zero:one;
     }
+    
 
     double npos = volume_utils::sum_all(pos);
     double nneg = volume_utils::sum_all(neg);
@@ -1499,8 +1533,8 @@ binomial_rebalance_mask( double3d_ptr lbl, double thresh = 0.5 )
     }
     else
     {
-        double wpos = static_cast<double>(1)/npos;
-        double wneg = static_cast<double>(1)/nneg;
+        double wpos = one/npos;
+        double wneg = one/nneg;
         double sum  = wpos + wneg;
         
         wpos /= sum;
@@ -1514,18 +1548,34 @@ binomial_rebalance_mask( double3d_ptr lbl, double thresh = 0.5 )
     return ret;
 }
 
+// // [kisuklee]
+// // TODO: implement
+// inline double3d_ptr 
+// binomial_rebalance_mask( double3d_ptr lbl, bool3d_ptr msk,
+//                          double thresh = 0.5 )
+// {
+// }
+
 inline std::list<double3d_ptr> 
-binomial_rebalance_mask( std::list<double3d_ptr> lbls, double thresh = 0.5 )
+binomial_rebalance_mask( std::list<double3d_ptr> lbls,
+                         double thresh = 0.5 )
 {
     std::list<double3d_ptr> ret;
-
     FOR_EACH( it, lbls )
     {
-        ret.push_back(volume_utils::binomial_rebalance_mask(*it,thresh));
+        ret.push_back(binomial_rebalance_mask(*it, thresh));
     }
-
     return ret;
 }
+
+// // [kisuklee]
+// // TODO: implement
+// inline std::list<double3d_ptr> 
+// binomial_rebalance_mask( std::list<double3d_ptr> lbls, 
+//                          std::list<bool3d_ptr>   msks,
+//                          double thresh = 0.5 )
+// {
+// }
 
 inline double3d_ptr
 multinomial_rebalance_mask( std::list<double3d_ptr> lbls )
@@ -1553,13 +1603,48 @@ multinomial_rebalance_mask( std::list<double3d_ptr> lbls )
     }
     else
     {
-        volume_utils::zero_out(ret);
+        volume_utils::zero_out(ret);        
         
         std::size_t idx = 0;
         FOR_EACH( it, lbls )
         {
             double w = weights[idx++]/sum;
             volume_utils::mul_add_to(w,*it,ret);
+        }
+    }
+
+    return ret;
+}
+
+// // [kisuklee]
+// // TODO: implement
+// inline double3d_ptr
+// multinomial_rebalance_mask( std::list<double3d_ptr> lbls, 
+//                             std::list<bool3d_ptr>   msks )
+// {
+// }
+
+// dropout
+inline bool3d_ptr dropout(double3d_ptr a, double p = 0.5 )
+{
+    vec3i sz = size_of(a);
+    bool3d_ptr ret = volume_pool.get_bool3d(sz);
+    double scale = static_cast<double>(1)/(static_cast<double>(1) - p);
+
+    std::size_t n = a->num_elements();
+    for ( std::size_t i = 0; i < n; ++i )
+    {
+        // dropout
+        if ( zero_one_generator.rand() < p )
+        {
+            a->data()[i]    = static_cast<double>(0);
+            ret->data()[i]  = false;
+
+        }
+        else
+        {
+            a->data()[i]   *= scale;
+            ret->data()[i]  = true;
         }
     }
 

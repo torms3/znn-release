@@ -49,6 +49,9 @@ public:
 	bool				fft;			// receives fft
 	bool				load;
 
+	bool				dropout;		// dropout flag
+	double				p;				// dropout rate
+
 private:
 	// for parsing configuration file
 	boost::program_options::options_description desc_;
@@ -77,6 +80,8 @@ public:
         fout << "mom=" << mom << std::endl;
         fout << "wc=" << wc << std::endl;
         fout << "fft=" << fft << std::endl;
+        fout << "dropout=" << dropout << std::endl;
+        fout << "p=" << p << std::endl;
         // Don't save load
         // fout << "load=" << load << std::endl;
 
@@ -126,6 +131,8 @@ private:
 	        ((name+".wc").c_str(),value<double>(&wc)->default_value(0.0),"wc")	        
 	        ((name+".fft").c_str(),value<bool>(&fft)->default_value(false),"fft")
 	        ((name+".load").c_str(),value<bool>(&load)->default_value(true),"load")
+	        ((name+".dropout").c_str(),value<bool>(&dropout)->default_value(false),"dropout flag")
+	        ((name+".p").c_str(),value<double>(&p)->default_value(0.5),"dropout rate")
 	        ;
 	}
 

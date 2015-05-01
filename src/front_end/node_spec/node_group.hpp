@@ -459,31 +459,31 @@ private:
 
 
 public:
-	void display() const
+	void display(std::ostream& os = std::cout) const
 	{
-		std::cout << "[" << name() << "]" << std::endl;		
-		std::cout << "Node size:\t\t" << nodes_.front()->get_size()
-				  << " x " << count() << std::endl;
+		os << "[" << name() << "]" << "\n";
+		os << "Node size:\t\t" << nodes_.front()->get_size()
+		   << " x " << count() << "\n";
 	  	
 	  	// filter
 		if ( spec_->filter_size != vec3i::one )
 		{
-		  	std::cout << "Filter size:\t\t" <<spec_->filter_size << std::endl;
-		  	std::cout << "Filter stride:\t\t" << spec_->filter_stride << std::endl;
+		  	os << "Filter size:\t\t" << spec_->filter_size << "\n";
+		  	os << "Filter stride:\t\t" << spec_->filter_stride << "\n";
 		  	
 		  	vec3i sparse = nodes_.front()->get_sparse();
 		  	if ( sparse != vec3i::one )
 		  	{
-		  		std::cout << "Sparseness:\t\t" << sparse << std::endl;
-		  		std::cout << "Real filter size:\t" 
-		  				  << spec_->real_filter_size(sparse) << std::endl;
+		  		os << "Sparseness:\t\t" << sparse << "\n";
+		  		os << "Real filter size:\t" 
+		  				  << spec_->real_filter_size(sparse) << "\n";
 		  	}
 		}
 
 		// FFT
 		if ( count_in_connections() )
 		{
-			std::cout << "Receive FFT: " << spec_->fft << std::endl;
+			os << "Receive FFT: " << spec_->fft << "\n";
 		}
 	}
 

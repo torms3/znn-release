@@ -161,6 +161,14 @@ public:
 		}
 	}
 
+	void set_inference( bool b )
+	{
+		FOR_EACH( it, nodes_ )
+		{
+			(*it)->set_inference(b);
+		}
+	}
+
 
 public:
 	void add_node_group( node_group_ptr g )
@@ -435,17 +443,17 @@ public:
 
 
 public:
-	void display() const
+	void display(std::ostream& os = std::cout) const
 	{
 		FOR_EACH( it, node_groups_ )
 		{
-			(*it)->display();
-			std::cout << std::endl;
+			(*it)->display(os);
+			os << "\n";
 
 			FOR_EACH( jt, (*it)->out_ )
 			{
-				(*jt)->display();
-				std::cout << std::endl;
+				(*jt)->display(os);
+				os << "\n";
 			}
 		}
 	}
