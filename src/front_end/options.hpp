@@ -347,6 +347,10 @@ public:
 	    {
 	    	ret = cost_fn_ptr(new malis_cost_fn(cost_fn_param));
 	    }
+	    else if ( cost_fn == "malis2" )
+	    {
+	    	ret = cost_fn_ptr(new malis2_cost_fn(cost_fn_param));
+	    }
 	    else
 	    {
 	    	std::string what = "Unknown cost function [" + cost_fn + "]";

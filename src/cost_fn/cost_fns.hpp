@@ -23,3 +23,4 @@
 #include "cross_entropy_cost_fn.hpp"
 #include "binomial_cross_entropy_cost_fn.hpp"
 #include "malis_cost_fn.hpp"
+#include "malis2_cost_fn.hpp"
