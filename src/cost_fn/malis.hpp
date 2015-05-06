@@ -332,7 +332,7 @@ malis( std::list<double3d_ptr> true_affs,
             double* p = it->get<3>();
 
             bool hinge = true;
-	    if ( hinge ) // hinge loss
+            if ( hinge ) // hinge loss
             {
                 // delta(s_i,s_j) = 1
                 double dl = std::max(0.0,0.5+margin-(it->get<0>()));
