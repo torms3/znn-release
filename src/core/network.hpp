@@ -358,9 +358,21 @@ private:
 private:    
     void force_eta( double eta )
     {
-        std::cout << "Force learning rate parameter to be " << eta << std::endl;
-        
-        net_->set_learning_rate(eta);
+        if ( eta > 0 )
+        {
+            std::cout << "Force learning rate parameter to be " << eta << std::endl;        
+            net_->set_learning_rate(eta);
+            eta_ = eta;
+        }
+    }
+
+    void output_eta( double eta )
+    {
+        if ( eta > 0 )
+        {
+            std::cout << "Force output learning rate parameter to be " << eta << std::endl;        
+            net_->set_output_learning_rate(eta);
+        }
     }
 
     void set_momentum( double mom )
@@ -393,8 +405,10 @@ public:
         }
 
         // learning rate parameter
-        eta_ = op->force_eta;
-        if ( eta_ > 0 ) force_eta(eta_);
+        force_eta(op->force_eta);        
+        
+        // output learning rate parameter
+        output_eta(op->output_eta);        
 
         // momentum setting
         set_momentum(op->momentum);

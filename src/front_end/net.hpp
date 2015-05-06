@@ -98,6 +98,15 @@ public:
 		}
 	}
 
+	void set_output_learning_rate( double eta )
+	{
+		// output node groups
+		FOR_EACH( it, output_groups_ )
+		{
+			(*it)->set_learning_rate(eta);
+		}
+	}
+
 	void set_momentum( double mom )
 	{
 		// node groups

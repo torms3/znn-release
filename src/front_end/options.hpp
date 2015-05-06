@@ -72,6 +72,7 @@ public:
 
 	// [UPDATE]
 	double				force_eta;
+	double				output_eta;
 	double				momentum;
 	double				wc_factor;
 	double				anneal_factor;
@@ -161,6 +162,7 @@ private:
 	        ("TRAIN.mirroring",value<bool>(&mirroring)->default_value(false),"Boundary mirroring")
 	        // UPDATE
 	        ("UPDATE.force_eta",value<double>(&force_eta)->default_value(0),"Force the learning rate parameter")
+	        ("UPDATE.output_eta",value<double>(&output_eta)->default_value(0),"Force the output learning rate parameter")
 	        ("UPDATE.momentum",value<double>(&momentum)->default_value(0),"Momentum")
 	        ("UPDATE.wc",value<double>(&wc_factor)->default_value(0),"Weight decay")
 	        ("UPDATE.anneal_factor",value<double>(&anneal_factor)->default_value(0),"Learning rate parameter annealing factor")
@@ -282,6 +284,7 @@ public:
         		   << "mirroring=" << rhs.mirroring << '\n'
         		   << "\n[UPDATE]\n"
         		   << "force_eta=" << rhs.force_eta << '\n'
+        		   << "output_eta=" << rhs.output_eta << '\n'
         		   << "momentum=" << rhs.momentum << '\n'
         		   << "wc=" << rhs.wc_factor << '\n'
         		   << "anneal_factor=" << rhs.anneal_factor << '\n'
