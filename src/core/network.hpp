@@ -528,6 +528,12 @@ public:
    
     void forward_scan()
     {
+        if ( op->time_series != vec3i::zero )
+        {
+            time_series_scan();
+            return;
+        }
+
         // load inputs for forward scanning
         load_test_inputs();
 
@@ -611,7 +617,7 @@ public:
         test_monitor_->check(op->save_path, n_iter_);
         std::cout << "<<<<<<<<<<<<< TEST >>>>>>>>>>>>>" << std::endl;
     }
-    
+
 
 private:
     void prepare_testing()
@@ -636,7 +642,10 @@ private:
             STRONG_ASSERT(!boost::filesystem::equivalent(hist_dir,load_dir));
 
             net_->reload_weight(op->weight_idx-1);
-            net_->save(op->hist_path);
+            if ( !op->hist_path.empty() )
+            {
+                net_->save(op->hist_path);    
+            }
 
             // train information
             export_train_information();
@@ -657,6 +666,50 @@ private:
         std::cout << "test  index: " << test_idx << std::endl;
         test_monitor_->load_state(op->load_path,test_idx);
         test_monitor_->save_state(op->hist_path);
+    }
+
+    void time_series_scan()
+    {
+        load_test_inputs();
+        
+        setup_fft();
+        
+        if ( op->force_load )
+        {
+            net_->force_load();
+        }
+
+        std::size_t head    = op->time_series[0];
+        std::size_t step    = op->time_series[1];
+        std::size_t tail    = op->time_series[2];
+        std::size_t counter = 1;
+        for ( std::size_t i = head; i <= tail; i += step, ++counter )
+        {
+            std::cout << "\n[Time series index = " << i << "] ";
+
+            // reload time-stamped network weight
+            net_->reload_weight(i-1);
+
+            // forward scanning
+            FOR_EACH( it, op->test_range )
+            {
+                int idx = *it;
+                forward_scanner_ptr scanner = scanners_[idx];
+
+                std::list<double3d_ptr> inputs;
+                std::list<double3d_ptr> outputs;
+
+                while ( scanner->pull(inputs) )
+                {
+                    outputs = run_forward(inputs);
+                    scanner->push(outputs);
+                }
+                
+                std::ostringstream batch;
+                batch << op->save_path << op->outname << idx << op->subname;
+                scanner->save(batch.str(),counter);
+            }            
+        }
     }
 
 

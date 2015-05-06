@@ -52,7 +52,15 @@ private:
 	vec3i										scan_lc_		;
 	std::list<vec3i>						wait_queue_	;
 
+<<<<<<< HEAD
 	feature_map_scanner_ptr				fmap_scanner_;
+=======
+	// time series scanning
+	std::size_t						counter_;
+
+	// feature map scanning
+	feature_map_scanner_ptr			fmap_scanner_;
+>>>>>>> origin/master
 
 
 protected:
@@ -311,15 +319,13 @@ private:
 public:
 	virtual bool pull( std::list<double3d_ptr>& inputs )
 	{
-		STRONG_ASSERT(wait_queue_.empty());
-
-		bool ret = false;
-
 		if ( scan_locs_.size() > 0 )
 		{
 			vec3i loc = *scan_locs_.begin();
 			scan_locs_.erase(scan_locs_.begin());
 			wait_queue_.push_back(loc);
+
+			std::cout << loc << " pulled." << std::endl;
 			
 			inputs.clear();
 			FOR_EACH( it, imgs_ )
@@ -327,19 +333,24 @@ public:
 				inputs.push_back((*it)->get_patch(loc));
 			}
 
-			ret = true;
+			return true;
 		}
-
-		return ret;
+		else
+		{
+			// replenish scan_locs_
+			std::copy(wait_queue_.begin(), wait_queue_.end(), 
+				std::inserter(scan_locs_, scan_locs_.end()));
+			wait_queue_.clear();
+			
+			return false;
+		}
 	}
 
 	virtual void push( std::list<double3d_ptr>& outputs )
 	{
-		STRONG_ASSERT(wait_queue_.size() == 1);
 		STRONG_ASSERT(outs_.size() == outputs.size());
 
-		vec3i loc = wait_queue_.front();
-		wait_queue_.pop_front();
+		vec3i loc = wait_queue_.back();
 
 		std::list<rw_dvolume_data_ptr>::iterator oit = outs_.begin();
 		FOR_EACH( it, outputs )
@@ -351,9 +362,11 @@ public:
 		if ( fmap_scanner_ ) fmap_scanner_->scan(loc);
 	}
 
-	virtual void save( const std::string& fpath ) const
+	virtual 
+	void save( const std::string& fpath, std::size_t cnt = 0 ) const
 	{
 		// outputs
+<<<<<<< HEAD
 		// std::size_t cnt = 0;
 		// FOR_EACH( it, outs_ )
 		// {
@@ -369,6 +382,25 @@ public:
 		FOR_EACH( it, outs_ )
 		{
 			tensor.push_back((*it)->get_volume());
+=======
+		std::size_t nout = 0;
+		FOR_EACH( it, outs_ )
+		{
+			std::string idx = boost::lexical_cast<std::string>(nout++);
+			std::string fname = fpath + "." + idx;
+			double3d_ptr out = (*it)->get_volume();
+
+			if ( cnt == 0 )
+			{
+				volume_utils::save(out,fname);
+				export_size_info(size_of(out), fname);
+			}
+			else // time-series
+			{
+				volume_utils::save_append(out,fname);
+				export_size_info(size_of(out), cnt, fname);
+			}
+>>>>>>> origin/master
 		}
 		volume_utils::save_tensor(tensor, fpath);
 	}
@@ -426,6 +458,7 @@ public:
 		, scan_dim_(dim)
 		, scan_coords_(3)
 		, scan_locs_()
+		, counter_(0)
 	{
 		set_FoVs();
 		load(parser);

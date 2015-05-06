@@ -142,6 +142,7 @@ public:
         if ( size_of(W) == size_ )
         {
             W_ = volume_utils::sparse_decompress(W,sparse_);
+            fft_.reset();
         }
         else
         {

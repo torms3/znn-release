@@ -424,13 +424,13 @@ public:
 
 		FOR_EACH( it, node_groups_ )
 		{
-			node_spec_ptr spec = (*it)->spec();			
+			node_spec_ptr spec = (*it)->spec();
 			(*it)->load_bias(load_path_);
 		}
 
 		FOR_EACH( it, edge_groups_ )
 		{
-			edge_spec_ptr spec = (*it)->spec();			
+			edge_spec_ptr spec = (*it)->spec();
 			(*it)->load_weight(load_path_);
 		}
 	}
