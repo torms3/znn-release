@@ -37,30 +37,26 @@ private:
 	std::list<dvolume_data_ptr>		imgs_;
 	std::list<rw_dvolume_data_ptr>	outs_;
 
-	std::vector<vec3i>					in_szs_ ;
-	std::vector<vec3i>					out_szs_;
-	std::vector<vec3i>					FoVs_	  ;
+	std::vector<vec3i>				in_szs_ ;
+	std::vector<vec3i>				out_szs_;
+	std::vector<vec3i>				FoVs_	;
 
-	box										range_;
+	box 							range_;
 
-	vec3i										scan_offset_;
-	vec3i										scan_step_	;
-	vec3i										scan_dim_	;				
-	std::vector<scan_coord>				scan_coords_;
-	std::set<vec3i>						scan_locs_	;
-	vec3i										scan_uc_		;
-	vec3i										scan_lc_		;
-	std::list<vec3i>						wait_queue_	;
+	vec3i							scan_offset_;
+	vec3i							scan_step_	;
+	vec3i							scan_dim_	;				
+	std::vector<scan_coord>			scan_coords_;
+	std::set<vec3i>					scan_locs_	;
+	vec3i							scan_uc_ 	;
+	vec3i							scan_lc_ 	;
+	std::list<vec3i>				wait_queue_	;
 
-<<<<<<< HEAD
-	feature_map_scanner_ptr				fmap_scanner_;
-=======
 	// time series scanning
 	std::size_t						counter_;
 
 	// feature map scanning
 	feature_map_scanner_ptr			fmap_scanner_;
->>>>>>> origin/master
 
 
 protected:
@@ -365,24 +361,15 @@ public:
 	virtual 
 	void save( const std::string& fpath, std::size_t cnt = 0 ) const
 	{
-		// outputs
-<<<<<<< HEAD
-		// std::size_t cnt = 0;
+		// tensor
+		// std::vector<double3d_ptr> tensor;
 		// FOR_EACH( it, outs_ )
 		// {
-		// 	std::string idx = boost::lexical_cast<std::string>(cnt++);
-		// 	std::string fname = fpath + "." + idx;
-		// 	double3d_ptr out = (*it)->get_volume();
-		// 	volume_utils::save(out,fname);
-		// 	export_size_info(size_of(out),fname);
+		// 	tensor.push_back((*it)->get_volume());
 		// }
+		// volume_utils::save_tensor(tensor, fpath);
 
-		// tensor
-		std::vector<double3d_ptr> tensor;
-		FOR_EACH( it, outs_ )
-		{
-			tensor.push_back((*it)->get_volume());
-=======
+		// outputs
 		std::size_t nout = 0;
 		FOR_EACH( it, outs_ )
 		{
@@ -400,9 +387,7 @@ public:
 				volume_utils::save_append(out,fname);
 				export_size_info(size_of(out), cnt, fname);
 			}
->>>>>>> origin/master
 		}
-		volume_utils::save_tensor(tensor, fpath);
 	}
 
 
