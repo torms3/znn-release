@@ -16,50 +16,41 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef ZNN_TRANSFORM_INIT_HPP_INCLUDED
-#define ZNN_TRANSFORM_INIT_HPP_INCLUDED
+#ifndef ZNN_INVTRANSFORM_INIT_HPP_INCLUDED
+#define ZNN_INVTRANSFORM_INIT_HPP_INCLUDED
 
-#include "initializer.hpp"
-#include "../core/volume_utils.hpp"
+#include "Transform_init.hpp"
 
 namespace zi {
 namespace znn {
 
-class Transform_init : virtual public initializer
+class InvTransform_init : virtual public Transform_init
 {
-protected:
-	double 	lower;
-	double 	upper;
-
 public:    
     virtual void initialize( double3d_ptr w )
     {
-    	volume_utils::transform(w,upper,lower);
+    	Transform_init::initialize(w);
+    	
+    	// Invert
+    	std::cout << "Invert from [" << lower << "," << upper << "] ";
+
+    	std::size_t n = w->num_elements();    	
+	    for ( std::size_t i = 0; i < n; ++i )
+	    {
+	        w->data()[i] = upper - w->data()[i] + lower;
+	    }
+
+	    std::cout << "to [" << upper << "," << lower << "]" << std::endl;
     }
-
-    virtual void init( const std::string& params )
-    {
-    	// parser for parsing arguments
-		std::vector<double> args;
-		zi::zargs_::parser<std::vector<double> > arg_parser;
-
-		bool parsed = arg_parser.parse(&args,params);
-		if ( parsed && (args.size() >= 2) )
-		{
-			lower = args[0];
-			upper = args[1];			
-		}
-    }
-
+    
 public:
-	Transform_init( double _lower = static_cast<double>(0),
-				 	double _upper = static_cast<double>(1) )
-		: lower(_lower)
-		, upper(_upper)
+	InvTransform_init( double _lower = static_cast<double>(0),
+				 	   double _upper = static_cast<double>(1) )
+		: Transform_init(_lower,_upper)
 	{}
 
-}; // class Transform_init
+}; // class InvTransform_init
 
 }} // namespace zi::znn
 
-#endif // ZNN_TRANSFORM_INIT_HPP_INCLUDED
+#endif // ZNN_INVTRANSFORM_INIT_HPP_INCLUDED
