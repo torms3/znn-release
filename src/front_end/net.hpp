@@ -157,7 +157,7 @@ public:
 	{
 		FOR_EACH( it, node_groups_ )
 		{
-			(*it)->receives_fft(fft);	
+			(*it)->receives_fft(fft);
 		}
 	}
 
@@ -475,13 +475,13 @@ public:
 
 		STRONG_ASSERT(boost::filesystem::is_directory(save_dir));
 
-		// nodes
+		// node groups
 		FOR_EACH( it, node_groups_ )
 		{
 			(*it)->save(path,history);
 		}
 
-		// edges
+		// edge groups
 		FOR_EACH( it, edge_groups_ )
 		{
 			(*it)->save(path,history);

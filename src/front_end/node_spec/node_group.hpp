@@ -58,6 +58,9 @@ private:
 	// cost function
 	cost_fn_ptr				cost_fn_;
 
+	// crop
+	bool					crop_;
+
 public:
 	std::list<double3d_ptr> get_activations( std::size_t n, bool softmax = false )
 	{
@@ -143,6 +146,16 @@ public:
 		{
 			(*it)->set_filtering(std::greater<double>(),vec3i::one);
 		}
+	}
+
+	void set_crop( bool b )
+	{
+		crop_ = b;
+	}
+
+	bool is_crop() const
+	{
+		return crop_;
 	}
 
 	
@@ -256,7 +269,16 @@ public:
 		FOR_EACH( it, in_ )
 		{
 			// (*it)->set_sparse(in_sparse_);
-			vec3i new_size = in_size_ + (*it)->real_filter_size() - vec3i::one;
+			vec3i new_size = in_size_;
+			if ( (*it)->is_crop() )
+			{
+				vec3i crop_offset = (*it)->spec()->crop_offset;
+				new_size += (crop_offset + crop_offset);
+			}
+			else
+			{
+				new_size += ((*it)->real_filter_size() - vec3i::one);
+			}
 			(*it)->source_->backward_init(new_size);
 		}
 	}
@@ -357,7 +379,8 @@ public:
 	void save( const std::string& path, bool history = false ) const
 	{
 		spec_->save(path);	// save node specification
-		save_bias(path);	// save bias
+		if ( crop_ ) return;
+		save_bias(path); 	// save bias
 
 		if ( history )
 		{
@@ -372,6 +395,8 @@ private:
 
 	void save_bias( const std::string& path ) const
 	{
+		if ( crop_ ) return;
+
 		std::string fpath = path + name_ + ".weight";
         std::ofstream fout(fpath.c_str(), BINARY_WRITE);
 
@@ -385,6 +410,8 @@ private:
 
 	void accumulate_weight( const std::string& path ) const
 	{
+		if ( crop_ ) return;
+
 		std::string fpath = path + name_ + ".weight.hist";
         std::ofstream fout(fpath.c_str(), BINARY_ACCUM);
 
@@ -404,6 +431,8 @@ private:
 
 	bool load_bias( std::ifstream& fin )
 	{
+		if ( crop_ ) return false;
+
 		STRONG_ASSERT( fin );
 
 		FOR_EACH( it, nodes_ )
@@ -422,6 +451,8 @@ private:
 
 	bool load_bias( const std::string& path )
 	{
+		if ( crop_ ) return false;
+
 		std::string fpath = path + name_ + ".weight";
 		std::ifstream fin(fpath.c_str(), BINARY_READ);
 		if ( !fin )
@@ -436,6 +467,8 @@ private:
 
 	bool load_bias( const std::string& path, std::size_t idx )
 	{
+		if ( crop_ ) return false;
+
 		std::string fpath = path + name_ + ".weight.hist";
 		std::ifstream fin(fpath.c_str(), BINARY_READ);
 		if ( !fin ) return false;
@@ -465,6 +498,8 @@ public:
 		os << "Node size:\t\t" << nodes_.front()->get_size()
 		   << " x " << count() << "\n";
 	  	
+		if ( crop_ ) return;
+
 	  	// filter
 		if ( spec_->filter_size != vec3i::one )
 		{
@@ -533,6 +568,7 @@ private:
 		, in_sparse_(vec3i::one)
 		, out_sparse_(vec3i::one)
 		, loaded_(false)
+		, crop_(false)
 	{
 		set_spec(node_spec_ptr(new node_spec(name_)));	// default spec
 		// std::cout << "node_group " << name_ << " has created!" << std::endl;

@@ -274,7 +274,7 @@ private:
     void optimize_for_training(bool scanning = false)
     {
         // [kisuklee] temporary
-        #define FILE_AND_CONSOLE( ofs, oss )       \
+        #define FILE_AND_CONSOLE( ofs, oss )        \
             {                                       \
                       ofs << oss.str() << "\n";     \
                 std::cout << oss.str() << "\n";     \
@@ -322,6 +322,8 @@ private:
         // should be refactored
         FOR_EACH( it, net_->node_groups_ )
         {
+            if ( (*it)->is_crop() ) continue;
+
             if ( (*it)->count_in_connections() > 0 )
             {
                 line << "Testing node_group [" << (*it)->name() << "] ...";

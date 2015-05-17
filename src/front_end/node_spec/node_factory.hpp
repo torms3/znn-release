@@ -79,7 +79,7 @@ public:
 
 		// dropout
 		ret->set_dropout(spec->dropout);
-		ret->set_dropout_rate(spec->p);
+		ret->set_dropout_rate(spec->p);		
 			
 		return ret;
 	}

@@ -104,12 +104,37 @@ private:
 	void build_edge_group( node_group_ptr source,
 						   node_group_ptr target,
 						   edge_group_ptr g )
-	{		
-		FOR_EACH( it, source->nodes_ )
+	{
+		// 1:1 connection
+		if ( g->is_crop() )
 		{
-			FOR_EACH( jt, target->nodes_ )
+			std::size_t ns = source->nodes_.size();
+			std::size_t nt = target->nodes_.size();
+						
+			STRONG_ASSERT(ns == nt);
+
+			for ( std::size_t it = 0; it < nt; ++it )
 			{
-				g->add_edge(create_edge(*it,*jt,g));
+				node_ptr sn = source->nodes_[it];
+				node_ptr tn = target->nodes_[it];
+	
+				edge_ptr e = create_edge(sn,tn,g);
+				e->set_crop(true);
+				e->set_crop_offset(g->spec()->crop_offset);
+				
+				g->add_edge(e);
+			}
+
+			target->set_crop(true);
+		}
+		else
+		{
+			FOR_EACH( it, source->nodes_ )
+			{
+				FOR_EACH( jt, target->nodes_ )
+				{
+					g->add_edge(create_edge(*it,*jt,g));
+				}
 			}
 		}
 
@@ -205,6 +230,10 @@ private:
 		else if ( spec->init_type == "zero" )
 		{
 			ret = initializer_ptr(new Zero_init);
+		}
+		else if ( spec->init_type == "crop" )
+		{
+			ret = initializer_ptr(new Constant_init(1));
 		}
 		else
 		{

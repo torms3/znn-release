@@ -40,6 +40,8 @@ public:
 	double 				wc;				// weight decay
 
 	bool				load;
+	bool 				crop;
+	vec3i 				crop_offset;
 
 private:
 	// for parsing configuration file
@@ -117,12 +119,35 @@ private:
 		{
 			size = vec3i(target[0],target[1],target[2]);
 		}
+
+		// crop edge
+		if ( init_type == "crop" )
+		{
+			crop = true;
+
+			target.clear();
+			source = vm[name+".init_params"].as<std::string>();
+			if ( _parser.parse(&target,source) )
+			{
+				if ( target.size() == 3 )
+				{
+					crop_offset = vec3i(target[0],target[1],target[2]);
+				}
+				else
+				{
+					std::cout << "Incorrect crop size: " << source << std::endl;
+					STRONG_ASSERT(false);
+				}
+			}
+		}
 	}
 
 
 public:
 	edge_spec( const std::string& _name )
 		: name(_name)
+		, crop(false)
+		, crop_offset(vec3i::zero)
 	{
 		initialize();
 	}
