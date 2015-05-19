@@ -776,7 +776,7 @@ private:
             {
                 in_received_ = 0;
                 ZI_ASSERT(f_);
-                error_fn_->add_apply(bias_,f_);
+                if ( error_fn_ ) error_fn_->add_apply(bias_,f_);
                 this->template run_forward<Manager>(task_manager);
             }
         }
@@ -832,7 +832,7 @@ private:
                 volume_utils::normalize(x);
                 f_ = volume_utils::crop_right(x,size_);
 
-                error_fn_->add_apply(bias_,f_);
+                if ( error_fn_ ) error_fn_->add_apply(bias_,f_);
 
                 this->template run_forward<Manager>(task_manager);
             }
@@ -1006,7 +1006,7 @@ private:
             volume_utils::elementwise_mul_by(dEdX_, scale);
         }
 
-        dEdX_ = error_fn_->gradient(dEdX_, f_);
+        if ( error_fn_ ) dEdX_ = error_fn_->gradient(dEdX_, f_);
 
         if ( filter_size_ != vec3i::one )
         {

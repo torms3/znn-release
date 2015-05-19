@@ -115,7 +115,11 @@ private:
 		zi::zargs_::parser<std::vector<double> > arg_parser;
 		bool parsed = arg_parser.parse(&args,params);
 
-		if ( type == "logistic" )
+		if ( type.empty() )
+		{
+			ret.reset();
+		}
+		else if ( type == "logistic" )
 		{
 			ret = error_fn_ptr(new logistic_error_fn);
 		}

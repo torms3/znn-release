@@ -413,6 +413,22 @@ public:
 
         // optimize for training (fft vs non fft)
         setup_fft();
+
+        // time-stamped network weight
+        if ( op->weight_idx > 0 )
+        {
+            boost::filesystem::path hist_dir(op->hist_path);
+            boost::filesystem::path load_dir(op->load_path);
+
+            net_->reload_weight(op->weight_idx-1);
+            if ( !op->hist_path.empty() )
+            {
+                net_->save(op->hist_path);
+            }
+
+            // train information
+            export_train_information();
+        }
     }
 
     void set_minibatch_size( vec3i sz )
