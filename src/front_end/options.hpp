@@ -79,6 +79,7 @@ public:
 	bool				minibatch;
 	bool				norm_grad;
 	bool				rebalance;
+	bool				patch_bal;
 
 	// [MONITOR]
 	std::size_t 		n_iters;
@@ -169,6 +170,7 @@ private:
 	        ("UPDATE.minibatch",value<bool>(&minibatch)->default_value(true),"Minibatch")
 	        ("UPDATE.norm_grad",value<bool>(&norm_grad)->default_value(false),"Gradient normalization")
 	        ("UPDATE.rebalance",value<bool>(&rebalance)->default_value(false),"Rebalancing")
+	        ("UPDATE.patch_bal",value<bool>(&patch_bal)->default_value(false),"Patch-wise rebalancing")
 	        // MONITOR
 	        ("MONITOR.n_iters",value<std::size_t>(&n_iters)->default_value(1000000),"Number of training iterations")
 	        ("MONITOR.check_freq",value<std::size_t>(&check_freq)->default_value(10),"Period for saving filter and display error")
@@ -229,6 +231,13 @@ private:
 		if ( outsz[0]*outsz[1]*outsz[2] == 0 )
 		{
 			std::string what = "Bad output size [" + vec3i_to_string(outsz) + "]";
+			throw std::invalid_argument(what);
+		}
+
+		// rebalancing mode
+		if ( rebalance && patch_bal )
+		{
+			std::string what = "Please use either [rebalance = 1] or [patch_bal = 1]";
 			throw std::invalid_argument(what);
 		}
 
@@ -302,6 +311,7 @@ public:
         		   << "minibatch=" << rhs.minibatch << '\n'
         		   << "norm_grad=" << rhs.norm_grad << '\n'
         		   << "rebalance=" << rhs.rebalance << '\n'
+        		   << "patch_bal=" << rhs.patch_bal << '\n'
         		   << "\n[MONITOR]\n"
         		   << "n_iters=" << rhs.n_iters << '\n'
         		   << "check_freq=" << rhs.check_freq << '\n'
