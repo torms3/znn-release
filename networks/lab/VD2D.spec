@@ -92,6 +92,8 @@ size=3,3,1
 [Conv5]
 size=200
 activation=relu
+dropout=1
+p=0.5
 
 [Conv5_OUTPUT]
 init_type=ReLU
