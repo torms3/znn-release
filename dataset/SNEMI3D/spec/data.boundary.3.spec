@@ -8,7 +8,7 @@ pptype=standard2D
 path=./dataset/SNEMI3D/data/batch3
 ext=label
 size=1024,1024,70
-pptype=binarify
+pptype=binary_class
 
 [MASK1]
 size=1024,1024,70
