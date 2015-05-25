@@ -326,7 +326,7 @@ public:
         		   << "out_filter=" << rhs.out_filter << '\n'
         		   << "outname=" << rhs.outname << '\n'
         		   << "subname=" << rhs.subname << '\n'
-        		   << "scan_fmaps=" << rhs.scan_fmaps << '\n'
+        		   << "fmaps=" << rhs.scan_fmaps << '\n'
         		   << "time_series=" << vec3i_to_string(rhs.time_series) << '\n'
         		);
 	}
