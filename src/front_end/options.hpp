@@ -24,8 +24,6 @@
 #include <zi/zargs/parser.hpp>
 
 #include <boost/program_options.hpp>
-#include <boost/tokenizer.hpp>
-#include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
 #include <sstream>
 #include <algorithm>
@@ -373,85 +371,6 @@ public:
 			throw std::invalid_argument(what);
 	    }
 	    return ret;
-	}
-
-
-private:
-	batch_list parse_batch_range( const std::string s )
-	{
-		batch_list ret;
-
-		using namespace boost;
-		char_separator<char> sep(",");
-		tokenizer< char_separator<char> > tokens(s, sep);
-		BOOST_FOREACH( const std::string& t, tokens )
-		{
-			// parsing
-			std::string::size_type pos = t.find("-");
-			if ( pos != std::string::npos )
-			{					
-				batch_list lst = parse_range_str(t);
-				ret.insert(ret.end(), lst.begin(), lst.end());
-			}
-			else
-			{
-				std::size_t n;
-				std::istringstream convert(t);
-				if ( !(convert >> n) )
-				{
-					std::string what = "Invalid range [" + t + "]";
-					throw std::invalid_argument(what);
-				}
-				ret.push_back(n);
-			}
-		}
-
-		// unique and sorted
-		std::sort(ret.begin(), ret.end());
-		ret.erase(std::unique(ret.begin(), ret.end()), ret.end());
-		return ret;
-	}
-
-	batch_list parse_range_str( const std::string s )
-	{	
-		batch_list ret;
-
-		std::string::size_type pos = s.find("-");
-		ZI_ASSERT( pos != std::string::npos );
-
-		std::string s1 = s.substr(0,pos);
-		std::string s2 = s.substr(pos+1);
-
-		std::size_t n1, n2;
-		std::istringstream convert1(s1);
-		std::istringstream convert2(s2);
-		if ( !(convert1 >> n1) || !(convert2 >> n2) )
-		{
-			std::string what = "Invalid range [" + s + "]";
-			throw std::invalid_argument(what);
-		}
-		
-		for ( std::size_t i = n1; i <= n2; ++i )
-			ret.push_back(i);
-
-		return ret;
-	}
-
-	void print_range( const std::string& name, const batch_list& range )
-	{
-		std::cout << name << " [";
-		if ( range.empty() )
-		{
-			std::cout << "empty]" << std::endl;
-			return;
-		}
-
-		std::cout << range.at(0);
-		for ( std::size_t i = 1; i < range.size(); ++i )
-		{
-			std::cout << "," << range.at(i);
-		}
-		std::cout << "]" << std::endl;
 	}
 
 

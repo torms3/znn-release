@@ -492,11 +492,16 @@ private:
 
 
 public:
-	void display(std::ostream& os = std::cout) const
+	void display(std::ostream& os = std::cout)
 	{
 		os << "[" << name() << "]" << "\n";
 		os << "Node size:\t\t" << nodes_.front()->get_size()
 		   << " x " << count() << "\n";
+
+		if ( !spec()->scan_list.empty() )
+		{
+			print_range("Scan list",spec()->scan_list);
+		}
 	  	
 		if ( crop_ ) return;
 

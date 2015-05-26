@@ -51,6 +51,9 @@ public:
 
 	bool				dropout;		// dropout flag
 	double				p;				// dropout rate
+    
+    // for scanning individual feature map
+    std::vector<std::size_t> scan_list;
 
 private:
 	// for parsing configuration file
@@ -133,6 +136,7 @@ private:
 	        ((name+".load").c_str(),value<bool>(&load)->default_value(true),"load")
 	        ((name+".dropout").c_str(),value<bool>(&dropout)->default_value(false),"dropout flag")
 	        ((name+".p").c_str(),value<double>(&p)->default_value(0.5),"dropout rate")
+            ((name+".scan_list").c_str(),value<std::string>()->default_value(""),"scan list")
 	        ;
 	}
 
@@ -156,12 +160,18 @@ private:
 		{
 			filter_stride = vec3i(target[0],target[1],target[2]);
 		}
+
+        // scan list
+        target.clear();
+        source = vm[name+".scan_list"].as<std::string>();        
+        scan_list = parse_batch_range(source);
 	}
 
 
 public:
 	node_spec( const std::string& _name )
 		: name(_name)
+        , scan_list()
 	{
 		initialize();
 	}
