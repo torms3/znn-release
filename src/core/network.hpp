@@ -225,7 +225,7 @@ private:
                                        op->mirroring));
 
             if ( op->scan_fmaps )
-                scanners_[n]->set_feature_map_scanner(net_);
+                scanners_[n]->set_feature_map_scanner(net_,op->scan_all);
         }
         else
         {

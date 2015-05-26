@@ -36,7 +36,7 @@ public:
 
 // feature map scanner
 public:
-	virtual void set_feature_map_scanner(net_ptr net)				= 0;
+	virtual void set_feature_map_scanner(net_ptr net, bool all)     = 0;
 	virtual void save_feature_maps(const std::string& fpath) const 	= 0;
 
 }; // abstract class forward_scanner

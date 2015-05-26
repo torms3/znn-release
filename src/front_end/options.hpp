@@ -95,6 +95,7 @@ public:
 	std::string 		outname;
 	std::string 		subname;
 	bool				scan_fmaps;
+	bool				scan_all;
 	vec3i 				time_series;
 
 
@@ -184,6 +185,7 @@ private:
 	        ("SCAN.outname",value<std::string>(&outname)->default_value("out"),"Output file name")
 	        ("SCAN.subname",value<std::string>(&subname)->default_value(""),"Output file subname")
 	        ("SCAN.fmaps",value<bool>(&scan_fmaps)->default_value(false),"Scanning feature maps")
+	        ("SCAN.scan_all",value<bool>(&scan_all)->default_value(false),"Scanning all feature maps")
 	        ("SCAN.time_series",value<std::string>()->default_value("0,0,0"),"Time series scanning")
 	        ;
 	}
@@ -325,6 +327,7 @@ public:
         		   << "outname=" << rhs.outname << '\n'
         		   << "subname=" << rhs.subname << '\n'
         		   << "fmaps=" << rhs.scan_fmaps << '\n'
+        		   << "scan_all=" << rhs.scan_all << '\n'
         		   << "time_series=" << vec3i_to_string(rhs.time_series) << '\n'
         		);
 	}

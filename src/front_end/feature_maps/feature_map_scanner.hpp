@@ -41,26 +41,52 @@ private:
 	const vec3i		uc_;
 	const vec3i		lc_;
 
+	bool 			all_;
+
 
 public:
 	void scan(vec3i loc)
 	{
 		FOR_EACH( it, net_->node_groups_ )
 		{
-			FOR_EACH( jt, (*it)->nodes_ )
+			if ( all_ )
 			{
-				push_feature_map(loc, *it, *jt);
+				FOR_EACH( jt, (*it)->nodes_ )
+				{
+					push_feature_map(loc, *it, *jt);
+				}
+			}
+			else
+			{
+				FOR_EACH( jt, (*it)->spec()->scan_list )
+				{
+					std::size_t no = *jt;
+					node_ptr nd = (*it)->nodes_[no-1];
+					push_feature_map(loc, *it, nd);	
+				}	
 			}
 		}
 	}
 
 	void save_map(const std::string& fpath)
-	{
+	{	
 		FOR_EACH( it, net_->node_groups_ )
 		{
-			FOR_EACH( jt, (*it)->nodes_ )
+			if ( all_ )
 			{
-				save_feature_map(fpath, *jt);
+				FOR_EACH( jt, (*it)->nodes_ )
+				{
+					save_feature_map(fpath, *jt);
+				}
+			}
+			else
+			{
+				FOR_EACH( jt, (*it)->spec()->scan_list )
+				{
+					std::size_t no = *jt;
+					node_ptr nd = (*it)->nodes_[no-1];
+					save_feature_map(fpath, nd);
+				}
 			}
 		}
 	}
@@ -106,9 +132,23 @@ private:
 	{
 		FOR_EACH( it, net_->node_groups_ )
 		{
-			FOR_EACH( jt, (*it)->nodes_ )
+			if ( all_ )
 			{
-				add_feature_map(*it, *jt);
+				FOR_EACH( jt, (*it)->nodes_ )
+				{
+					add_feature_map(*it, *jt);
+				}
+			}
+			else
+			{
+				FOR_EACH( jt, (*it)->spec()->scan_list )
+				{
+					std::size_t no = *jt;
+					STRONG_ASSERT(no > 0);
+					STRONG_ASSERT(no <= (*it)->count());
+					node_ptr nd = (*it)->nodes_[no-1];
+					add_feature_map(*it, nd);	
+				}
 			}
 		}
 	}
@@ -131,10 +171,11 @@ private:
 
 
 public:
-	feature_map_scanner(net_ptr net, vec3i uc, vec3i lc)
+	feature_map_scanner(net_ptr net, vec3i uc, vec3i lc, bool all = false)
 		: net_(net)
 		, uc_(uc)
 		, lc_(lc)
+		, all_(all)
 	{
 		initialize();
 	}

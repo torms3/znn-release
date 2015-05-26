@@ -384,10 +384,10 @@ public:
 
 
 public:
-	void set_feature_map_scanner(net_ptr net)
+	void set_feature_map_scanner(net_ptr net, bool all = false)
 	{
 		fmap_scanner_ = feature_map_scanner_ptr(new
-			feature_map_scanner(net, scan_uc_, scan_lc_));
+			feature_map_scanner(net, scan_uc_, scan_lc_, all));
 	}
 
 	void save_feature_maps(const std::string& fpath) const
