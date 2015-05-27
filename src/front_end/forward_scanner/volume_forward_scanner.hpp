@@ -390,15 +390,18 @@ public:
 			feature_map_scanner(net, scan_uc_, scan_lc_, all));
 	}
 
-	void save_feature_maps(const std::string& fpath) const
+	void save_feature_maps(const std::string& fpath, bool all = false) const
 	{
 		if ( fmap_scanner_ )
 		{
-			// save by map
-			// fmap_scanner_->save_map(fpath);
-
-			// save by groups of feature maps
-			fmap_scanner_->save_tensor(fpath);
+			if ( all ) 
+			{
+				fmap_scanner_->save_tensor(fpath); // save by groups of maps
+			}
+			else
+			{
+				fmap_scanner_->save_map(fpath); // save by map
+			}
 		}
 	}
 

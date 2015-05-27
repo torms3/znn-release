@@ -585,7 +585,7 @@ public:
                 {
                     boost::filesystem::create_directory(fmaps_dir);
                 }
-                scanner->save_feature_maps(fmaps_path + batch.str() + ".");
+                scanner->save_feature_maps(fmaps_path + batch.str() + ".",op->scan_all);
             }
             else // save output
             {

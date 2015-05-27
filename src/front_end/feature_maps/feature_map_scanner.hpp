@@ -49,21 +49,25 @@ public:
 	{
 		FOR_EACH( it, net_->node_groups_ )
 		{
+			std::vector<std::size_t> scan_list;
 			if ( all_ )
 			{
-				FOR_EACH( jt, (*it)->nodes_ )
+				std::size_t n = (*it)->count();
+				for ( std::size_t i = 0; i < n; ++i )
 				{
-					push_feature_map(loc, *it, *jt);
+					scan_list.push_back(i+1);
 				}
 			}
 			else
 			{
-				FOR_EACH( jt, (*it)->spec()->scan_list )
-				{
-					std::size_t no = *jt;
-					node_ptr nd = (*it)->nodes_[no-1];
-					push_feature_map(loc, *it, nd);	
-				}	
+				scan_list = (*it)->spec()->scan_list;
+			}
+
+			std::size_t n = scan_list.size();
+			for ( std::size_t i = 0; i < n; ++i )
+			{
+				node_ptr nd = (*it)->nodes_[scan_list[i]-1];
+				push_feature_map(loc, (*it)->name(), nd, i);
 			}
 		}
 	}
@@ -72,21 +76,25 @@ public:
 	{	
 		FOR_EACH( it, net_->node_groups_ )
 		{
+			std::vector<std::size_t> scan_list;
 			if ( all_ )
 			{
-				FOR_EACH( jt, (*it)->nodes_ )
+				std::size_t n = (*it)->count();
+				for ( std::size_t i = 0; i < n; ++i )
 				{
-					save_feature_map(fpath, *jt);
+					scan_list.push_back(i+1);
 				}
 			}
 			else
 			{
-				FOR_EACH( jt, (*it)->spec()->scan_list )
-				{
-					std::size_t no = *jt;
-					node_ptr nd = (*it)->nodes_[no-1];
-					save_feature_map(fpath, nd);
-				}
+				scan_list = (*it)->spec()->scan_list;
+			}
+
+			std::size_t n = scan_list.size();
+			for ( std::size_t i = 0; i < n; ++i )
+			{
+				node_ptr nd = (*it)->nodes_[scan_list[i]-1];
+				save_feature_map(fpath, (*it)->name(), nd, i);
 			}
 		}
 	}
@@ -109,19 +117,16 @@ public:
 	}
 
 private:
-	void push_feature_map(vec3i loc, node_group_ptr ng, node_ptr nd)
+	void push_feature_map(vec3i loc, std::string layer, node_ptr nd, std::size_t idx)
 	{
-		std::size_t idx = nd->get_neuron_number() - 1;
-		
-		fmaps_[ng->name()][idx]->set_patch(loc, nd->get_activation());
+		fmaps_[layer][idx]->set_patch(loc, nd->get_activation());
 	}
 
-	void save_feature_map(const std::string& fpath, node_ptr nd)
-	{;
-		std::size_t idx = nd->get_neuron_number() - 1;
-
-		std::string fname = fpath + nd->get_name();
-		double3d_ptr fmap = fmaps_[nd->get_name()][idx]->get_volume();
+	void save_feature_map(const std::string& fpath, std::string layer, node_ptr nd, std::size_t idx)
+	{
+		std::string num = boost::lexical_cast<std::string>(nd->get_neuron_number());
+		std::string fname = fpath + layer + ".map" + num;
+		double3d_ptr fmap = fmaps_[layer][idx]->get_volume();
 		volume_utils::save(fmap, fname);
 		export_size_info(size_of(fmap), fname);
 	}
@@ -165,8 +170,9 @@ private:
 		vec3i FoV = sz;
 		fmap_type* fmap  = new fmap_type(vol,FoV,offset);
 
+		// std::cout << "Layer " << ng->name() << ", Map " << nd->get_neuron_number();
 		fmaps_[ng->name()].push_back(fmap_type_ptr(fmap));
-		STRONG_ASSERT(fmaps_[ng->name()].size()==nd->get_neuron_number());
+		// STRONG_ASSERT(fmaps_[ng->name()].size()==nd->get_neuron_number());
 	}
 
 
