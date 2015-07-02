@@ -40,6 +40,7 @@ public:
 	double 				wc;				// weight decay
 
 	bool				load;
+    
 	bool 				crop;
 	vec3i 				crop_offset;
 

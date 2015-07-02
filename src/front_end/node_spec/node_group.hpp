@@ -61,6 +61,7 @@ private:
 	// crop
 	bool					crop_;
 
+
 public:
 	std::list<double3d_ptr> get_activations( std::size_t n, bool softmax = false )
 	{
@@ -192,8 +193,15 @@ public:
 		}
 		else
 		{
-			in_sparse_ = sparse;			
-			out_sparse_ = sparse*spec_->filter_stride;
+			in_sparse_ = sparse;
+			if ( spec_->sparse != vec3i::zero )
+			{
+				out_sparse_ = spec_->sparse;
+			}
+			else
+			{
+				out_sparse_ = sparse*spec_->filter_stride;
+			}
 			init_sparse();
 		}
 
@@ -257,7 +265,15 @@ public:
 	{
 		if ( initialized() )
 		{
-			STRONG_ASSERT(out_size_ == size);
+			if ( out_size_ != size )
+			{
+				display();
+
+				std::cout << "out_size_ = " << out_size_ << std::endl;
+				std::cout << "size = " << size << std::endl;
+
+				STRONG_ASSERT(false);
+			}
 		}
 		else
 		{

@@ -289,7 +289,7 @@ private:
 public:
     node(const std::string& name, double bias = 0.01, double eta = 0.0001,
          std::size_t layer_no = 0, std::size_t neuron_no = 0,
-         error_fn_ptr error_fn = error_fn_ptr(new logistic_error_fn),
+         error_fn_ptr error_fn = error_fn_ptr(),
          double mom = 0.0, double wc = 0.0, double szB = 1.0)
         : name_(name)
         , m_()

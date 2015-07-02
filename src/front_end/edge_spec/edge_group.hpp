@@ -224,9 +224,6 @@ private:
                         (*W)[x][y][z] = d;
                     }
 
-            // vec3i s = (*it)->get_sparse();
-			// (*it)->set_W(W);
-			// (*it)->set_sparse(s);
             (*it)->reset_W(W);
 		}
 
@@ -282,7 +279,11 @@ public:
 	  	os << "Kernel size:\t\t" << spec_->size << " x "
 		   << count() << "\n";
 
-		if ( crop_ ) return;
+		if ( crop_ )
+		{
+			os << "Crop offset:\t\t" << spec_->crop_offset << "\n";
+			return;
+		}
 
 	  	vec3i sparse = edges_.front()->get_sparse();
 	  	if ( sparse != vec3i::one )
