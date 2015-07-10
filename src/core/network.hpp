@@ -386,7 +386,7 @@ private:
 public:
     void prepare_training()
     {
-        // resume training        
+        // resume training
         {
             n_iter_ = train_monitor_->load_state(op->load_path);
             n_iter_ = n_iter_ + 1;
