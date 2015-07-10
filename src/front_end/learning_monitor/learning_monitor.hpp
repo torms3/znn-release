@@ -165,6 +165,12 @@ public:
             fcls.read( reinterpret_cast<char*>(&CLSE_lst_[0]),
                        sizeof(double)*CLSE_lst_.size() );
 
+            std::string sspeed = path + name_ + ".speed";
+            std::ifstream fspeed(sspeed.c_str(), READ_FLAG);
+            speed_lst_.resize(iter);
+            fspeed.read( reinterpret_cast<char*>(&speed_lst_[0]),
+                         sizeof(double)*speed_lst_.size() );
+
             // the lateset update number
             iter = iter_lst_.back();
         }
