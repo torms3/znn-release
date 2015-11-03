@@ -41,6 +41,9 @@ class network;
 class options
 {
 private:
+	bool 				validity_check;
+
+private:
 	std::string			train_range_str;
 	std::string			test_range_str;
 
@@ -103,9 +106,9 @@ public:
 private:
 	// for parsing configuration file
 	boost::program_options::options_description desc_;
-	
 
-public:	
+
+public:
 	#define TEXT_WRITE 	(std::ios::out)
 	#define TEXT_READ	(std::ios::in)
 
@@ -180,7 +183,7 @@ private:
 	       	("SCAN.scanner",value<std::string>(&scanner)->default_value("volume"),"Forward scanner")
 	        ("SCAN.offset",value<std::string>()->default_value("0,0,0"),"Offset to start forward scanning")
 	        ("SCAN.dim",value<std::string>()->default_value("0,0,0"),"Number of subvolumes for each dimension")
-	        ("SCAN.weight_idx",value<std::size_t>(&weight_idx)->default_value(0),"Time-stamped network weight")	        
+	        ("SCAN.weight_idx",value<std::size_t>(&weight_idx)->default_value(0),"Time-stamped network weight")
 	        ("SCAN.force_load",value<bool>(&force_load)->default_value(true),"Force load")
 	        ("SCAN.out_filter",value<bool>(&out_filter)->default_value(true),"Enable output filtering")
 	        ("SCAN.outname",value<std::string>(&outname)->default_value("out"),"Output file name")
@@ -202,7 +205,7 @@ private:
 		path_check();
 
 		// check validity of the number of threads
-		if ( n_threads == 0 )
+		if ( validity_check && n_threads == 0 )
 		{
 			throw std::invalid_argument("Thread number should be greater than 0");
 		}
@@ -218,7 +221,7 @@ private:
 		print_range("test_range ",test_range);
 
 		// output size
-		target.clear();		
+		target.clear();
 		source = vm["TRAIN.outsz"].as<std::string>();
 		if ( _parser.parse(&target,source) )
 		{
@@ -343,7 +346,7 @@ public:
 	// object factory design pattern later on
 	cost_fn_ptr create_cost_function()
 	{
-		cost_fn_ptr ret;	
+		cost_fn_ptr ret;
 		if ( cost_fn == "square" )
 		{
 			ret = cost_fn_ptr(new square_cost_fn);
@@ -360,14 +363,14 @@ public:
 	    {
 	    	ret = cost_fn_ptr(new square_square_cost_fn(cost_fn_param));
 	    }
-	    else if ( cost_fn == "malis" )
-	    {
-	    	ret = cost_fn_ptr(new malis_cost_fn(cost_fn_param));
-	    }
-	    else if ( cost_fn == "malis2" )
-	    {
-	    	ret = cost_fn_ptr(new malis2_cost_fn(cost_fn_param));
-	    }
+	    // else if ( cost_fn == "malis" )
+	    // {
+	    // 	ret = cost_fn_ptr(new malis_cost_fn(cost_fn_param));
+	    // }
+	    // else if ( cost_fn == "malis2" )
+	    // {
+	    // 	ret = cost_fn_ptr(new malis2_cost_fn(cost_fn_param));
+	    // }
 	    else
 	    {
 	    	std::string what = "Unknown cost function [" + cost_fn + "]";
@@ -390,7 +393,7 @@ private:
 			// parsing
 			std::string::size_type pos = t.find("-");
 			if ( pos != std::string::npos )
-			{					
+			{
 				batch_list lst = parse_range_str(t);
 				ret.insert(ret.end(), lst.begin(), lst.end());
 			}
@@ -414,7 +417,7 @@ private:
 	}
 
 	batch_list parse_range_str( const std::string s )
-	{	
+	{
 		batch_list ret;
 
 		std::string::size_type pos = s.find("-");
@@ -431,7 +434,7 @@ private:
 			std::string what = "Invalid range [" + s + "]";
 			throw std::invalid_argument(what);
 		}
-		
+
 		for ( std::size_t i = n1; i <= n2; ++i )
 			ret.push_back(i);
 
@@ -459,12 +462,15 @@ private:
 public:
 	void path_check()
 	{
-		std::cout << "\n[options] path_check" << std::endl;
-		check_config_path();
-		check_load_path();
-		// data path will be checked later
-		check_save_path();
-		check_hist_path();
+		if ( validity_check )
+		{
+			std::cout << "\n[options] path_check" << std::endl;
+			check_config_path();
+			check_load_path();
+			// data path will be checked later
+			check_save_path();
+			check_hist_path();
+		}
 	}
 
 
@@ -479,8 +485,8 @@ private:
 		{
 			std::string what = "Non-existent config path [" + config_path + "]";
 			throw std::invalid_argument(what);
-		}		
-		
+		}
+
 		if ( boost::filesystem::is_directory(config_file) )
 		{
 			std::string what = "Non-file config path [" + config_path + "]";
@@ -506,13 +512,13 @@ private:
 			std::string what = "Non-existent load path [" + load_path + "]";
 			throw std::invalid_argument(what);
 		}
-		
+
 		if ( !boost::filesystem::is_directory(load_dir) )
 		{
 			std::string what = "Non-directory load path [" + load_path + "]";
 			throw std::invalid_argument(what);
 		}
-		
+
 		if ( *load_path.rbegin() != '/' )
 		{
 			load_path = load_path + "/";
@@ -531,13 +537,13 @@ private:
 
 		boost::filesystem::path save_dir(save_path);
 
-		// save path is not allowed to be empty		
+		// save path is not allowed to be empty
 		if ( !boost::filesystem::exists(save_dir) )
 		{
 			std::string what = "Non-existent save path [" + save_path + "]";
 			throw std::invalid_argument(what);
 		}
-		
+
 		if ( !boost::filesystem::is_directory(save_dir) )
 		{
 			std::string what = "Non-directory save path [" + save_path + "]";
@@ -559,7 +565,7 @@ private:
 			std::cout << "Hist path   [empty]" << std::endl;
 			return;
 		}
-		
+
 		boost::filesystem::path hist_dir(hist_path);
 
 		if ( !boost::filesystem::exists(hist_dir) )
@@ -567,13 +573,13 @@ private:
 			std::string what = "Non-existent hist path [" + hist_path + "]";
 			throw std::invalid_argument(what);
 		}
-		
+
 		if ( !boost::filesystem::is_directory(hist_dir) )
 		{
 			std::string what = "Non-directory hist path [" + hist_path + "]";
 			throw std::invalid_argument(what);
 		}
-		
+
 		if ( *hist_path.rbegin() != '/' )
 		{
 			hist_path = hist_path + "/";
@@ -583,17 +589,18 @@ private:
 
 
 public:
-	options( const std::string& path )
-		: outsz(vec3i::one)
+	options( const std::string& path, bool check = true )
+		: validity_check(check)
+		, outsz(vec3i::one)
 		, scan_offset(vec3i::zero)
 		, subvol_dim(vec3i::zero)
 		, time_series(vec3i::zero)
 	{
 		initialize();
-		
+
 		if ( !build(path) )
 		{
-			std::string what 
+			std::string what
 				= "Failed to build training options from the file [" + path + "]";
 			throw std::invalid_argument(what);
 		}

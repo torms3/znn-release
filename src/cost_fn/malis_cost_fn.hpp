@@ -42,8 +42,8 @@ public:
                                               std::list<bool3d_ptr>   masks )
     {
         // compute malis (gradient,loss) pair
-        malis_pair mp = malis(labels, outputs, masks, m_);
-        
+        malis_return mp = malis(labels, outputs, masks, m_);
+
         // store loss value for later use
         unique_queue_.clear();
         unique_queue_.push_back(mp.second);
@@ -52,13 +52,13 @@ public:
         return mp.first;
     }
 
-    virtual double compute_cost( std::list<double3d_ptr> outputs, 
+    virtual double compute_cost( std::list<double3d_ptr> outputs,
                                  std::list<double3d_ptr> labels,
                                  std::list<bool3d_ptr>   masks )
     {
         if ( unique_queue_.empty() )
         {
-            malis_pair mp = malis(labels, outputs, masks, m_);
+            malis_return mp = malis(labels, outputs, masks, m_);
             unique_queue_.push_back(mp.second);
         }
 

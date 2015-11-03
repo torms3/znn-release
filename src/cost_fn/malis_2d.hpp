@@ -16,8 +16,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef ZNN_MALIS_HPP_INCLUDED
-#define ZNN_MALIS_HPP_INCLUDED
+#ifndef ZNN_MALIS_2D_HPP_INCLUDED
+#define ZNN_MALIS_2D_HPP_INCLUDED
 
 #include "../core/types.hpp"
 #include "../core/utils.hpp"
@@ -37,41 +37,44 @@ namespace zi {
 namespace znn {
 
 inline malis_return
-malis( std::list<double3d_ptr> true_affs,
-       std::list<double3d_ptr> affs,
-       std::list<bool3d_ptr>   masks,
-       double margin )
+malis_2d( std::list<double3d_ptr> true_affs,
+          std::list<double3d_ptr> affs,
+          double margin = 0 )
 {
     double loss = 0;
     long3d_ptr seg_ptr = get_segmentation(true_affs);
     long3d&    seg = *seg_ptr;
 
-    ZI_ASSERT(affs.size()==3);
+    ZI_ASSERT(affs.size()==2);
 
     vec3i s = volume_utils::volume_size(affs.front());
-    std::size_t n = s[0]*s[1]*s[2];
 
-    double3d_ptr xaff = affs.front(); affs.pop_front();
-    double3d_ptr yaff = affs.front(); affs.pop_front();
-    double3d_ptr zaff = affs.front(); affs.pop_front();
+    // constrained to 2D
+    ZI_ASSERT(s[2]==1);
+    std::size_t n = s[0]*s[1];
 
-    bool3d_ptr xmask = masks.front(); masks.pop_front();
-    bool3d_ptr ymask = masks.front(); masks.pop_front();
-    bool3d_ptr zmask = masks.front(); masks.pop_front();
+    double3d_ptr xaff = affs.front();affs.pop_front();
+    double3d_ptr yaff = affs.front();affs.pop_front();
 
-    double3d_ptr xres = volume_pool.get_double3d(s); volume_utils::zero_out(xres);
-    double3d_ptr yres = volume_pool.get_double3d(s); volume_utils::zero_out(yres);
-    double3d_ptr zres = volume_pool.get_double3d(s); volume_utils::zero_out(zres);
+    // merger weight
+    std::list<double3d_ptr> mw;
+    double3d_ptr xmw = volume_pool.get_double3d(s);
+    double3d_ptr ymw = volume_pool.get_double3d(s);
+    volume_utils::zero_out(xmw);mw.push_back(xmw);
+    volume_utils::zero_out(ymw);mw.push_back(ymw);
 
-    affs.push_back(xres);
-    affs.push_back(yres);
-    affs.push_back(zres);
+    // splitter weight
+    std::list<double3d_ptr> sw;
+    double3d_ptr xsw = volume_pool.get_double3d(s);
+    double3d_ptr ysw = volume_pool.get_double3d(s);
+    volume_utils::zero_out(xsw);sw.push_back(xsw);
+    volume_utils::zero_out(ysw);sw.push_back(ysw);
 
+    // data structures for computing MALIS weight
     zi::disjoint_sets<uint32_t>     sets(n+1);
     std::vector<uint32_t>           sizes(n+1);
     std::map<uint32_t, uint32_t>    seg_sizes;
     std::vector<std::map<uint32_t, uint32_t> > contains(n+1);
-
 
     long3d_ptr ids_ptr = volume_pool.get_long3d(s);
     long3d& ids = *ids_ptr;
@@ -90,6 +93,8 @@ malis( std::list<double3d_ptr> true_affs,
         {
             ++n_lbl_vert;
             ++seg_sizes[seg.data()[i]];
+
+            // n*(n - 1)/2 = 1 + ... + n
             n_pair_pos += (seg_sizes[seg.data()[i]] - 1);
         }
     }
@@ -98,37 +103,30 @@ malis( std::list<double3d_ptr> true_affs,
     std::size_t n_pair_lbl = n_lbl_vert*(n_lbl_vert-1)/2;
     // std::size_t n_pair_neg = n_pair_lbl - n_pair_pos;
 
-    typedef boost::tuple<double,uint32_t,uint32_t,double*> edge_type;
-    typedef std::greater<edge_type>                        edge_compare;
+    // (affinity value, vertex 1, vertex 2, merger weight, splitter weight)
+    typedef boost::tuple<double,uint32_t,uint32_t,double*,double*> edge_type;
+    typedef std::greater<edge_type> edge_compare;
 
     std::vector<edge_type> edges;
-    edges.reserve(n*3);
+    edges.reserve(n*2); // 2D
 
-    for ( std::size_t x = 0; x < s[0]; ++x )
-        for ( std::size_t y = 0; y < s[1]; ++y )
-            for ( std::size_t z = 0; z < s[2]; ++z )
+    for ( std::size_t y = 0; y < s[1]; ++y )
+        for ( std::size_t x = 0; x < s[0]; ++x )
+        {
+            if ( x > 0 )
             {
-                if ( x > 0 )
-                {
-                    if ( (*xmask)[x][y][z] )
-                        edges.push_back(edge_type((*xaff)[x][y][z], ids[x-1][y][z],
-                                                  ids[x][y][z], &((*xres)[x][y][z])));
-                }
-
-                if ( y > 0 )
-                {
-                    if ( (*ymask)[x][y][z] )
-                        edges.push_back(edge_type((*yaff)[x][y][z], ids[x][y-1][z],
-                                                  ids[x][y][z], &((*yres)[x][y][z])));
-                }
-
-                if ( z > 0 )
-                {
-                    if ( (*zmask)[x][y][z] )
-                        edges.push_back(edge_type((*zaff)[x][y][z], ids[x][y][z-1],
-                                                  ids[x][y][z], &((*zres)[x][y][z])));
-                }
+                edges.push_back(edge_type((*xaff)[x][y][0], ids[x-1][y][0],
+                                          ids[x][y][0], &((*xmw)[x][y][0]),
+                                          &((*xsw)[x][y][0])));
             }
+
+            if ( y > 0 )
+            {
+                edges.push_back(edge_type((*yaff)[x][y][0], ids[x][y-1][0],
+                                          ids[x][y][0], &((*ymw)[x][y][0]),
+                                          &((*ysw)[x][y][0])));
+            }
+        }
 
     std::sort(edges.begin(), edges.end(), edge_compare());
 
@@ -138,11 +136,6 @@ malis( std::list<double3d_ptr> true_affs,
     std::size_t nFN = 0;
     std::size_t nTN = 0;
 
-    // [kisuklee]
-    // (B,N) or (B,B) pairs where B: boundary, N: non-boundary
-    // std::size_t n_b_pairs = 0;
-
-    // [kisuklee]
     // (B,N) or (B,B) pairs where B: boundary, N: non-boundary
     // std::size_t n_b_pairs = 0;
 
@@ -196,36 +189,40 @@ malis( std::list<double3d_ptr> true_affs,
                 nFN += n_pair_same;
             }
 
-            double* p = it->get<3>();
+            double* pm = it->get<3>(); // merger weight
+            double* ps = it->get<4>(); // splitter weight
 
-            bool hinge = true;
-            if ( hinge ) // hinge loss
-            {
-                // delta(s_i,s_j) = 1
-                double dl = std::max(0.0,0.5+margin-(it->get<0>()));
-                *p   -= (dl > 0)*n_pair_same;
-                loss += dl*n_pair_same;
+            *pm += n_pair_diff;
+            *ps += n_pair_same;
 
-                // delta(s_i,s_j) = 0
-                dl = std::max(0.0,(it->get<0>())-0.5+margin);
-                *p   += (dl > 0)*n_pair_diff;
-                loss += dl*n_pair_diff;
-            }
-            else // square-square loss
-            {
-                // delta(s_i,s_j) = 1
-                double dl = -std::max(0.0,1.0-margin-(it->get<0>()));
-                *p   += dl*n_pair_same;
-                loss += dl*dl*0.5*n_pair_same;
+            // bool hinge = true;
+            // if ( hinge ) // hinge loss
+            // {
+            //     // delta(s_i,s_j) = 1
+            //     double dl = std::max(0.0,0.5+margin-(it->get<0>()));
+            //     *p   -= (dl > 0)*n_pair_same;
+            //     loss += dl*n_pair_same;
 
-                // delta(s_i,s_j) = 0
-                dl = std::max(0.0,(it->get<0>())-margin);
-                *p   += dl*n_pair_diff;
-                loss += dl*dl*0.5*n_pair_diff;
-            }
+            //     // delta(s_i,s_j) = 0
+            //     dl = std::max(0.0,(it->get<0>())-0.5+margin);
+            //     *p   += (dl > 0)*n_pair_diff;
+            //     loss += dl*n_pair_diff;
+            // }
+            // else // square-square loss
+            // {
+            //     // delta(s_i,s_j) = 1
+            //     double dl = -std::max(0.0,1.0-margin-(it->get<0>()));
+            //     *p   += dl*n_pair_same;
+            //     loss += dl*dl*0.5*n_pair_same;
+
+            //     // delta(s_i,s_j) = 0
+            //     dl = std::max(0.0,(it->get<0>())-margin);
+            //     *p   += dl*n_pair_diff;
+            //     loss += dl*dl*0.5*n_pair_diff;
+            // }
 
             // normlize gradient
-            *p /= n_pair_lbl;
+            // *p /= n_pair_lbl;
 
             uint32_t new_set = sets.join(set1, set2);
             sizes[set1] += sizes[set2];
@@ -251,10 +248,10 @@ malis( std::list<double3d_ptr> true_affs,
     metric.nFN  = nFN;
     metric.nTN  = nTN;
 
-    return std::make_pair(affs, metric);
+    return std::make_pair(malis_weight(mw,sw), metric);
 }
 
 
 }} // namespace zi::znn
 
-#endif // ZNN_MALIS_HPP_INCLUDED
+#endif // ZNN_MALIS_2D_HPP_INCLUDED

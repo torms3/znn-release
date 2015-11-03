@@ -7,9 +7,9 @@
 namespace zi {
 namespace znn {
 
-// 
+//
 // Inputs
-// 
+//
 //      data_path       : path to data spec
 //      save_path       : path to save
 //      outname         : filename to save
@@ -17,7 +17,7 @@ namespace znn {
 //      outsz           : output patch size
 //      subvol_dim      : receptive field (dummy)
 //      cost_fn_param   : margin for square-square loss
-// 
+//
 class malis_debug : virtual public debug
 {
 public:
@@ -28,18 +28,17 @@ public:
 
         load_input(op_->data_path);
 
-        typedef std::pair<std::list<double3d_ptr>,double> malis_pair;
         malis_pair mpair;
 
         zi::wall_timer wt;
         for ( std::size_t i = 0; i < op_->n_iters ; ++i )
         {
-            std::cout << "[Iter: " << std::setw(count_digit(op_->n_iters)) 
+            std::cout << "[Iter: " << std::setw(count_digit(op_->n_iters))
                                    << i + 1 << "] ";
 
             // random sampling
             sample_ptr s = dp_->random_sample();
-            
+
             // applying MALIS
             for ( std::size_t j = 0; j < 5; ++j )
             {
@@ -79,12 +78,12 @@ private:
         for ( std::size_t i = 0; i < 3; ++i )
         {
             in_szs.push_back(in_sz);
-            out_szs.push_back(out_sz);            
+            out_szs.push_back(out_sz);
         }
 
         std::cout << "loading [" << fname << "]" << std::endl;
 
-        affinity_data_provider* dp = 
+        affinity_data_provider* dp =
             new affinity_data_provider(fname,in_szs,out_szs);
 
         dp->data_augmentation(false);
@@ -92,7 +91,7 @@ private:
         dp_ = data_provider_ptr(dp);
     }
 
-    void accumulate_volumes( std::list<double3d_ptr> v, 
+    void accumulate_volumes( std::list<double3d_ptr> v,
                              const std::string& fname,
                              std::size_t counter )
     {

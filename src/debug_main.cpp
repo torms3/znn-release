@@ -18,8 +18,8 @@
 
 #include "front_end/options.hpp"
 
-#include "debug/malis_debug.hpp"
-#include "debug/merger_debug.hpp"
+#include "debug/get_segmentation_debug.hpp"
+#include "debug/malis_2d_debug.hpp"
 
 #include <iostream>
 #include <zi/time.hpp>
@@ -34,17 +34,20 @@ int main(int argc, char** argv)
 {
     // options
     zi::parse_arguments(argc, argv);
-    options_ptr op = options_ptr(new options(ZiARG_options));
-    op->save();
+    options_ptr op = options_ptr(new options(ZiARG_options,false));
 
     debug_ptr dbg;
-    if ( ZiARG_type == "malis" )
+    if ( ZiARG_type == "malis_2d" )
     {
-        dbg = debug_ptr(new malis_debug(op));
+        dbg = debug_ptr(new malis_2d_debug(op));
     }
-    else if ( ZiARG_type == "merger" )
+    else if ( ZiARG_type == "get_segmentation" )
     {
-        dbg = debug_ptr(new merger_debug(op));
+        dbg = debug_ptr(new get_segmentation_debug(op));
+    }
+    else
+    {
+        STRONG_ASSERT(false);
     }
 
     if ( dbg ) dbg->run();
