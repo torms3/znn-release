@@ -300,6 +300,66 @@ def malis_weight_aff(affs, true_affs, threshold=0.5):
     #ret[key] = weights
     return ret
 
+class CDomain:
+    def __init__( id0=None ):
+        import numbers
+        # a dictionary containing voxel number of different segment id
+        sizes = dict()
+        # a dictionary containing voxel sets
+        sets = set()
+        total_size = 0
+        if isinstance(id0, numbers.Number):
+            sizes[id0] = 1
+            sets[id0]  = {id0}
+
+    def union(self, dm2 ):
+        """
+        merge with another domain
+        dm2: CDomain, another domain
+        """
+        for id2, sz2 in dm2.sizes.iteritems():
+            set2 = dm2.sets[id2]
+            if self.sizes.has_key(id2):
+                # have common segment id, merge together
+                self.sizes[id2] += sz2
+                self.sets[id2] = self.sets[id2].union( set2 )
+            else:
+                # do not have common id, create new one
+                self.sizes[id2] = sz2
+                self.sets[id2] = set2
+        return
+    def clear(self):
+        """
+        delete all the containt
+        """
+        self.sizes = dict()
+        self.sets = dict()
+        return
+
+    def find( vid ):
+        """
+        find whether this voxel is in this domain
+        """
+        for id1, set1 in self.sets.iteritems():
+            if vid in set1:
+                return True
+        return False
+
+class CDomains:
+    """
+    the list of watershed domains.
+    """
+    def __init__( self, N ):
+        """
+        Parameters
+        ----------
+        N : number of initial domains.
+            normally it is the number of voxels.
+        """
+        dm_sizes = dict()
+        for i in xrange(N):
+            dm_sizes[i]
+
 def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     """
     compute malis weight for boundary map
@@ -455,24 +515,28 @@ def get_merge_split_errors(set1, set2, lbl):
     #print "merging and spliting error: ", me, ", ", se
     return me, se
 
+def constrain_label(bdm, lbl):
+    # merging error boundary map filled with intracellular ground truth
+    mbdm = np.copy(bdm)
+    mbdm[lbl>0] = 1
+
+    # splitting error boundary map filled with boundary ground truth
+    sbdm = np.copy(bdm)
+    sbdm[lbl==0] = 0
+
+    return mbdm, sbdm
+
 def constrained_malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     """
     adding constraints for malis weight
     fill the intracellular space with ground truth when computing merging error
     fill the boundary with ground truth when computing spliting error
     """
-    # merging error boundary map filled with intracellular ground truth
-    mbdm = np.copy(bdm)
-    mbdm[lbl>0] = 1
+    mbdm, sbdm = constrain_label(bdm, lbl)
     # get the merger weights
     mw, mme, mse = malis_weight_bdm_2D(mbdm, lbl, threshold)
-
-    # splitting error boundary map filled with boundary ground truth
-    sbdm = np.copy(bdm)
-    sbdm[lbl==0] = 0
     # get the splitter weights
     sw, sme, sse = malis_weight_bdm_2D(sbdm, lbl, threshold)
-
     w = mme + sse
     return (w, mme, sse)
 

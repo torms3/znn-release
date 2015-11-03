@@ -4,87 +4,56 @@ import numpy as np
 import time
 import utils
 import matplotlib.pylab as plt
+
 #%% parameters
-z = 8
-# epsilone: a small number for log to avoind -infinity
-eps = 0.0000001
+def get_params():
+    pars = dict()
+    # epsilone: a small number for log to avoind -infinity
+    pars['eps'] = 0.0000001
 
-# largest disk radius
-Dm = 500
-Ds = 500
+    # largest disk radius
+    pars['Dm'] = 500
+    pars['Ds'] = 500
 
-# make a fake test image
-is_fake = False
+    # make a fake test image
+    pars['is_fake'] = False
 
-# whether using constrained malis
-is_constrained = False
+    # whether using constrained malis
+    pars['is_constrained'] = True
 
-# thicken boundary of label by morphological errosion
-erosion_size = 0
+    # thicken boundary of label by morphological errosion
+    pars['erosion_size'] = 0
 
-# a small corner
-corner_size = 0
+    # a small corner
+    pars['corner_size'] = 0
 
-# disk radius threshold
-DrTh = 0
+    # disk radius threshold
+    pars['DrTh'] = 0
+    return pars
 
-#%% read images
-if not is_fake:
-    bdm = emirt.emio.imread('../experiments/zfish/VD2D/out_sample91_output_0.tif')
-    lbl = emirt.emio.imread('../dataset/zfish/Merlin_label2_24bit.tif')
-    raw = emirt.emio.imread('../dataset/zfish/Merlin_raw2.tif')
-    lbl = emirt.volume_util.lbl_RGB2uint32(lbl)
-    lbl = lbl[z,:,:]
-    bdm = bdm[z,:,:]
-else:
-    # fake image size
-    fs = 20
-    bdm = np.ones((fs,fs), dtype='float32')
-    bdm[3,:] = 0.5
-    bdm[3,7] = 0.8
-    bdm[3,3] = 0.2
-    bdm[6,:] = 0.5
-    bdm[6,3] = 0.2
-    bdm[6,7] = 0.8
-    lbl = np.zeros((fs,fs), dtype='uint32')
-    lbl[:6, :] = 1
-    lbl[7:, :] = 2
-assert lbl.max()>1
+if __name__ == "__main__":
+    # get the parameters
+    pars = get_params()
 
-# only a corner for test
-if corner_size > 0:
-    lbl = lbl[:corner_size, :corner_size]
-    bdm = bdm[:corner_size, :corner_size]
+    import data_prepare
+    bdm, lbl = data_prepare.read_image(pars)
 
-# fill label holes
-print "fill boundary hole..."
-utils.fill_boundary_holes( lbl )
+    # recompile and use cost_fn
+    #print "compile the cost function..."
+    #os.system('python compile.py cost_fn')
+    import cost_fn
+    start = time.time()
+    if pars['is_constrained']:
+        print "compute the constrained malis weight..."
+        w, me, se = cost_fn.constrained_malis_weight_bdm_2D(bdm, lbl)
+    else:
+        print "compute the normal malis weight..."
+        w, me, se = cost_fn.malis_weight_bdm_2D(bdm, lbl)
 
-# increase boundary width
-if erosion_size>0:
-    print "increase boundary width"
-    erosion_structure = np.ones((erosion_size, erosion_size))
-    msk = np.copy(lbl>0)
-    from scipy.ndimage.morphology import binary_erosion
-    msk = binary_erosion(msk, structure=erosion_structure)
-    lbl[msk==False] = 0
+    elapsed = time.time() - start
+    print "elapsed time is {} sec".format(elapsed)
 
-# recompile and use cost_fn
-#print "compile the cost function..."
-#os.system('python compile.py cost_fn')
-import cost_fn
-start = time.time()
-if is_constrained:
-    print "compute the constrained malis weight..."
-    w, me, se = cost_fn.constrained_malis_weight_bdm_2D(bdm, lbl)
-else:
-    print "compute the normal malis weight..."
-    w, me, se = cost_fn.malis_weight_bdm_2D(bdm, lbl)
+    import malis_show
+    malis_show.plot(pars, bdm, lbl, me, se)
 
-elapsed = time.time() - start
-print "elapsed time is {} sec".format(elapsed)
-
-import malis_show
-malis_show.plot(bdm, lbl, me, se)
-
-print "------end-----"
+    print "------end-----"
