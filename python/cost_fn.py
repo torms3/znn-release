@@ -301,7 +301,11 @@ def malis_weight_aff(affs, true_affs, threshold=0.5):
     return ret
 
 class CDomain:
-    def __init__( id0=None ):
+    def __init__( lid=None, vid=None ):
+        """
+        lid: label id
+        vid: voxel id
+        """
         import numbers
         # a dictionary containing voxel number of different segment id
         sizes = dict()
@@ -309,8 +313,8 @@ class CDomain:
         sets = set()
         total_size = 0
         if isinstance(id0, numbers.Number):
-            sizes[id0] = 1
-            sets[id0]  = {id0}
+            sizes[lid] = 1
+            sets[lid]  = {vid}
 
     def union(self, dm2 ):
         """
@@ -340,25 +344,77 @@ class CDomain:
         """
         find whether this voxel is in this domain
         """
-        for id1, set1 in self.sets.iteritems():
-            if vid in set1:
+        for s in self.sets.values():
+            if vid in s:
                 return True
         return False
+
+    def get_merge_split_errors(self, dm2):
+        """
+        compute the merge and split error of two domains
+        """
+        # merging and splitting error
+        me = 0
+        se = 0
+        for lid1, sz1 in self.sizes.iteritems():
+            for lid2, sz2 in dm2.sizes.iteritems():
+                if lid1==lid2:
+                    # they should be merged together
+                    # this is a split error
+                    se += sz1 * sz2
+                else:
+                    # they should be splitted
+                    # this is a merging error
+                    me += sz1 * sz2
+        return me, se
 
 class CDomains:
     """
     the list of watershed domains.
     """
-    def __init__( self, N ):
+    def __init__( self, lbl ):
         """
         Parameters
         ----------
-        N : number of initial domains.
-            normally it is the number of voxels.
+        lbl: 2D/3D array, manual label image
         """
-        dm_sizes = dict()
-        for i in xrange(N):
-            dm_sizes[i]
+        assert(lbl.ndim==2 or lbl.ndim==3)
+        dms = list()
+        # voxel id start from 0
+        for vid in xrange( lbl.size ):
+            lid = lbl.flat[vid]
+            dms.append( CDomain(lid, vid) )
+        return
+
+    def find( self, vid ):
+        """
+        find the corresponding domain of a voxel
+        vid: voxel ID
+        Return
+        ------
+        dm: corresponding watershed domain
+        """
+        for i, dm in enumerate( self.dms ):
+            if dm.find(vid):
+                return i, dm
+        raise NameError("the voxel id was not found!")
+        return
+
+    def union(vid1, vid2):
+        """
+        union the two watershed domain of two voxel ids
+        """
+        i1, dm1 = self.find(vid1)
+        i2, dm2 = self.find(vid2)
+        if i1 != i2:
+            # they are in different domains
+            me, se = dm1.get_merge_split_errors( dm2 )
+            # merge these two domains
+            self.dms[i1] = dm1.union( dm2 )
+            self.dms.pop(i2)
+            return me, se
+        else:
+            return 0,0
 
 def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     """
@@ -379,8 +435,8 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     assert(bdm.shape==lbl.shape)
 
     # initialize segmentation with individual id of each voxel
-    ids = np.arange(1,bdm.size+1).reshape( bdm.shape )
-    seg = np.arange(1,bdm.size+1)
+    # voxel id start from 0, is exactly the coordinate of voxel in 1D
+    vids = np.arange(bdm.size).reshape( bdm.shape )
 
     # create edges: bdm, id1, id2, true label
     # the affinity of neiboring boundary map voxels
@@ -389,26 +445,27 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     edges = list()
     for y in xrange(bdm.shape[0]):
         for x in xrange(bdm.shape[1]-1):
-            v1 = bdm[y,x]
-            i1 = ids[y,x]
-            v2 = bdm[y,x+1]
-            i2 = ids[y,x+1]
+            bmv1 = bdm[y,x]
+            vid1 = vids[y,x]
+            bmv2 = bdm[y,x+1]
+            vid2 = vids[y,x+1]
             # the voxel with id1 will always has the minimal value
-            if v1 > v2:
-                v1, v2 = v2, v1
-                i1, i2 = i2, i1
-            edges.append((v1, i1, i2))
+            if bmv1 > bmv2:
+                bmv1, bmv2 = bmv2, bmv1
+                vid1, vid2 = vid2, vid1
+            edges.append((bmv1, vid1, vid2))
 
     for y in xrange(bdm.shape[1]-1):
         for x in xrange(bdm.shape[0]):
-            v1 = bdm[y,x]
-            i1 = ids[y,x]
-            v2 = bdm[y+1,x]
-            i2 = ids[y+1,x]
-            if v1 > v2:
-                v1, v2 = v2, v1
-                i1, i2 = i2, i1
-            edges.append((v1, i1, i2))
+            # boundary map value and voxel id
+            bmv1 = bdm[y,x]
+            vid1 = vids[y,x]
+            bmv2 = bdm[y+1,x]
+            vid2 = vids[y+1,x]
+            if bmv1 > bmv2:
+                bmv1, bmv2 = bmv2, bmv1
+                vid1, vid2 = vid2, vid1
+            edges.append((bmv1, vid1, vid2))
 
     # descending sort
     edges.sort(reverse=True)
@@ -416,36 +473,24 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     # initalize the merge and split errors
     merr = np.zeros(bdm.size, dtype=bdm.dtype)
     serr = np.zeros(bdm.size, dtype=bdm.dtype)
-    # set of ids
-    id_sets = dict()
-    # initalize the id sets
-    for i in xrange(1,lbl.size+1):
-        id_sets[i] = {i}
+
+    # initalize the watershed domains
+    dms = CDomains( lbl )
 
     # find the maximum spanning tree based on union-find algorithm
     for e in edges:
-        # find the segment/root id
-        r1 = malis_find(e[1], seg)
-        r2 = malis_find(e[2], seg)
-        if r1==r2:
-            # this is not a maximin edge
-            # these pixel pair is already in one segment
-            continue
-
-        # find the id set pair of this edge
-        set1 = id_sets[r1]
-        set2 = id_sets[r2]
-
-        # compute the merging and spliting error
-        me, se = get_merge_split_errors(set1, set2, lbl)
+        # voxel ids
+        vid1 = e[1]
+        vid2 = e[2]
+        # union the domains
+        me, se = dms.union( vid1, vid2 )
 
         # deal with the maximin edge
         # accumulate the merging error
-        merr[e[1]-1] += me
+        merr[vid1] += me
         # accumulate the spliting error
-        serr[e[1]-1] += se
-        # merge the two sets
-        seg, id_sets = malis_union(r1,r2, seg, id_sets)
+        serr[vid2] += se
+
     # normalize the weight
     merr *= merr.size*0.5 / np.sum(merr, dtype=bdm.dtype)
     serr *= serr.size*0.5 / np.sum(serr, dtype=bdm.dtype)
@@ -457,63 +502,6 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     w = (merr + serr)
 
     return (w, merr, serr)
-
-def get_merge_split_errors(set1, set2, lbl):
-    """
-    count the merging and spliting errors
-
-    Parameters
-    ----------
-    set1: set of integers, set of pixel ids
-    set2: the other set
-    lbl: array of integers, ground truth segmentation
-
-    Returns
-    -------
-    me: integer, mergers
-    se: integer, splits
-    """
-    # transform to a dictionary of pixel ids
-    # key: segmentation id in manual labeling
-    # value: set of pixel ids
-    d1 = dict()
-    d2 = dict()
-    # label should have multiple segments
-    # it is not a binary labeling
-    assert(lbl.max()>1)
-
-    for i in set1:
-        # get labeled id
-        l1 = lbl.flat[i-1]
-        # skip boundary
-        if l1 > 0:
-            if d1.has_key(l1):
-                d1[l1].add(i)
-            else:
-                d1[l1] = {i}
-    for i in set2:
-        # get labeled id
-        l2 = lbl.flat[i-1]
-        # skip boundary
-        if l2 > 0:
-            if d2.has_key(l2):
-                d2[l2].add(i)
-            else:
-                d2[l2] = {i}
-    # mergers and spliters
-    me = se = 0
-    for l1, s1 in d1.iteritems():
-        for l2, s2 in d2.iteritems():
-            if l1==l2:
-                # they should merge together
-                # this is split error
-                se += len(s1) * len(s2)
-            else:
-                # they should be splited
-                # this is merge error
-                me += len(s1) * len(s2)
-    #print "merging and spliting error: ", me, ", ", se
-    return me, se
 
 def constrain_label(bdm, lbl):
     # merging error boundary map filled with intracellular ground truth

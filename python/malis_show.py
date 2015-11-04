@@ -69,7 +69,8 @@ def disk_plot(e, D, DrTh, color='g'):
     plt.scatter(x,y,r, c=color, alpha=0.6, linewidths=0)
 
 
-def plot(bdm, lbl, me, se, is_constrained=False):
+def plot( lbl, me, se, pars, bdm, mbdm=None, sbdm=None):
+    is_constrained = pars['is_constrained']
     #%% plot the results
     print "plot the images"
     if is_constrained:
@@ -146,12 +147,22 @@ def read_bin_img(fname, shape=(504,504)):
     return img
 
 if __name__ == '__main__':
-    bdm = read_bin_img("../experiments/boundary_map.bin")
-    lbl = read_bin_img("../experiments/label_fill_hole.bin")
+    from malis_test import get_params
+    pars = get_params()
+    is_constrained = pars['is_constrained']
+    if is_constrained:
+        mbdm = read_bin_img("../dataset/bdm_merge.bin")
+        sbdm = read_bin_img("../dataset/bdm_splite.bin")
 
-    me  = read_bin_img("../experiments/out.merger",   (504,504,2))
-    se  = read_bin_img("../experiments/out.splitter", (504,504,2))
+    bdm = read_bin_img("../dataset/boundary_map.bin")
+    lbl = read_bin_img("../dataset/label.bin")
+
+    me  = read_bin_img("../experiments/out_constrained.merger",   (504,504,2))
+    se  = read_bin_img("../experiments/out_constrained.splitter", (504,504,2))
     me = me[:,:,0] + me[:,:,1]
     se = se[:,:,0] + se[:,:,1]
 
-    plot(bdm, lbl, me, se)
+    if is_constrained:
+        plot( lbl, me, se, pars, bdm, mbdm, sbdm)
+    else:
+        plot( lbl, me, se, pars, bdm)
