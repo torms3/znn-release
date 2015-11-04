@@ -2,30 +2,7 @@ import emirt
 import numpy as np
 import matplotlib.pylab as plt
 
-# epsilone: a small number for log to avoind -infinity
-eps = 0.0000001
-
-# largest disk radius
-Dm = 500
-Ds = 500
-
-# make a fake test image
-is_fake = False
-
-# whether using constrained malis
-is_constrained = False
-
-# thicken boundary of label by morphological errosion
-erosion_size = 0
-
-# a small corner
-corner_size = 0
-
-# disk radius threshold
-DrTh = 0
-
-
-def compute_gradient(bdm, lbl):
+def compute_gradient(bdm, lbl, me, se):
     # gradient
     # square loss gradient
     grdt = 2 * (bdm-  (lbl>0).astype('float32'))
@@ -69,8 +46,12 @@ def disk_plot(e, D, DrTh, color='g'):
     plt.scatter(x,y,r, c=color, alpha=0.6, linewidths=0)
 
 
-def plot( lbl, me, se, pars, bdm, mbdm=None, sbdm=None):
+def plot( pars, bdm, lbl, me, se, mbdm=None, sbdm=None):
     is_constrained = pars['is_constrained']
+    eps = pars['eps']
+    Dm = pars['Dm']
+    Ds = pars['Ds']
+    DrTh = pars['DrTh']
     #%% plot the results
     print "plot the images"
     if is_constrained:
@@ -119,7 +100,7 @@ def plot( lbl, me, se, pars, bdm, mbdm=None, sbdm=None):
     disk_plot(se, Ds, DrTh)
 
     # merger and spliter gradient
-    mg, sg = compute_gradient(bdm, lbl)
+    mg, sg = compute_gradient(bdm, lbl, me, se)
 
     plt.subplot(244)
     #cim,mpg,mng = gradient2rgb(mg)

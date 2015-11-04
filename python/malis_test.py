@@ -12,10 +12,10 @@ def get_params():
     pars['Ds'] = 500
 
     # make a fake test image
-    pars['is_fake'] = False
+    pars['is_fake'] = True
 
     # whether using constrained malis
-    pars['is_constrained'] = True
+    pars['is_constrained'] = False
 
     # thicken boundary of label by morphological errosion
     pars['erosion_size'] = 0

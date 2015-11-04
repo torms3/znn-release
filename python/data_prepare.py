@@ -18,7 +18,7 @@ def read_image(pars):
         bdm = bdm[z,:,:]
     else:
         # fake image size
-        fs = 20
+        fs = 10
         bdm = np.ones((fs,fs), dtype='float32')
         bdm[3,:] = 0.5
         bdm[3,7] = 0.8

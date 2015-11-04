@@ -358,14 +358,16 @@ class CDomain:
         se = 0
         for lid1, sz1 in self.sizes.iteritems():
             for lid2, sz2 in dm2.sizes.iteritems():
-                if lid1==lid2:
-                    # they should be merged together
-                    # this is a split error
-                    se += sz1 * sz2
-                else:
-                    # they should be splitted
-                    # this is a merging error
-                    me += sz1 * sz2
+                # ignore the boundaries
+                if lid1>0 and lid2>0:
+                    if lid1==lid2:
+                        # they should be merged together
+                        # this is a split error
+                        se += sz1 * sz2
+                    else:
+                        # they should be splitted
+                        # this is a merging error
+                        me += sz1 * sz2
         return me, se
 
 class CDomains:
@@ -399,7 +401,6 @@ class CDomains:
             if dm.find(vid):
                 return i, dm
         raise NameError("the voxel id was not found!")
-        return
 
     def union(self, vid1, vid2):
         """
@@ -492,7 +493,7 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
         # accumulate the merging error
         merr[vid1] += me
         # accumulate the spliting error
-        serr[vid2] += se
+        serr[vid1] += se
 
     # normalize the weight
     merr *= merr.size*0.5 / np.sum(merr, dtype=bdm.dtype)
