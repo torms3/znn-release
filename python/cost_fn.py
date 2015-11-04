@@ -301,37 +301,37 @@ def malis_weight_aff(affs, true_affs, threshold=0.5):
     return ret
 
 class CDomain:
-    def __init__( lid=None, vid=None ):
+    def __init__(self, lid=None, vid=None ):
         """
         lid: label id
         vid: voxel id
         """
         import numbers
         # a dictionary containing voxel number of different segment id
-        sizes = dict()
+        self.sizes = dict()
         # a dictionary containing voxel sets
-        sets = set()
-        total_size = 0
-        if isinstance(id0, numbers.Number):
-            sizes[lid] = 1
-            sets[lid]  = {vid}
+        self.sets = dict()
+        if isinstance(lid, numbers.Number) and \
+           isinstance(vid, numbers.Number):
+            self.sizes[lid] = 1
+            self.sets[lid]  = {vid}
 
     def union(self, dm2 ):
         """
         merge with another domain
         dm2: CDomain, another domain
         """
-        for id2, sz2 in dm2.sizes.iteritems():
-            set2 = dm2.sets[id2]
-            if self.sizes.has_key(id2):
+        for lid2, sz2 in dm2.sizes.iteritems():
+            set2 = dm2.sets[lid2]
+            if self.sizes.has_key(lid2):
                 # have common segment id, merge together
-                self.sizes[id2] += sz2
-                self.sets[id2] = self.sets[id2].union( set2 )
+                self.sizes[lid2] += sz2
+                self.sets[lid2] = self.sets[lid2].union( set2 )
             else:
                 # do not have common id, create new one
-                self.sizes[id2] = sz2
-                self.sets[id2] = set2
-        return
+                self.sizes[lid2] = sz2
+                self.sets[lid2] = set2
+
     def clear(self):
         """
         delete all the containt
@@ -340,7 +340,7 @@ class CDomain:
         self.sets = dict()
         return
 
-    def find( vid ):
+    def find( self, vid ):
         """
         find whether this voxel is in this domain
         """
@@ -379,11 +379,12 @@ class CDomains:
         lbl: 2D/3D array, manual label image
         """
         assert(lbl.ndim==2 or lbl.ndim==3)
-        dms = list()
+        self.dms = list()
         # voxel id start from 0
         for vid in xrange( lbl.size ):
+            # manual labeled segment id
             lid = lbl.flat[vid]
-            dms.append( CDomain(lid, vid) )
+            self.dms.append( CDomain(lid, vid) )
         return
 
     def find( self, vid ):
@@ -400,18 +401,20 @@ class CDomains:
         raise NameError("the voxel id was not found!")
         return
 
-    def union(vid1, vid2):
+    def union(self, vid1, vid2):
         """
         union the two watershed domain of two voxel ids
         """
-        i1, dm1 = self.find(vid1)
-        i2, dm2 = self.find(vid2)
-        if i1 != i2:
+        # domain id and domain
+        dmid1, dm1 = self.find(vid1)
+        dmid2, dm2 = self.find(vid2)
+        if dmid1 != dmid2:
             # they are in different domains
             me, se = dm1.get_merge_split_errors( dm2 )
             # merge these two domains
-            self.dms[i1] = dm1.union( dm2 )
-            self.dms.pop(i2)
+            dm1.union(dm2)
+            self.dms[dmid1] = dm1
+            self.dms.pop(dmid2)
             return me, se
         else:
             return 0,0

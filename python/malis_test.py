@@ -1,9 +1,5 @@
 # test the malis of boundary map
-import emirt
-import numpy as np
 import time
-import utils
-import matplotlib.pylab as plt
 
 #%% parameters
 def get_params():
