@@ -49,9 +49,9 @@ make_affinity( double3d_ptr vol_ptr, std::size_t dim = 3 )
             }
 
     std::list<double3d_ptr> ret;
-    if ( dim == 3 ) ret.push_back(zaff);
-    ret.push_back(yaff);
     ret.push_back(xaff);
+    ret.push_back(yaff);
+    if ( dim == 3 ) ret.push_back(zaff);
     return ret;
 }
 

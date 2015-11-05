@@ -45,6 +45,12 @@ malis_2d( std::list<double3d_ptr> true_affs,
     long3d_ptr seg_ptr = get_segmentation(true_affs);
     long3d&    seg = *seg_ptr;
 
+#if defined( DEBUG )
+    std::cout << '\n';
+    std::cout << "[Segmentation]" << std::endl;
+    volume_utils::print_in_matlab_format(seg_ptr);
+#endif
+
     ZI_ASSERT(affs.size()==2);
 
     vec3i s = volume_utils::volume_size(affs.front());
@@ -55,6 +61,16 @@ malis_2d( std::list<double3d_ptr> true_affs,
 
     double3d_ptr xaff = affs.front();affs.pop_front();
     double3d_ptr yaff = affs.front();affs.pop_front();
+
+#if defined( DEBUG )
+    std::cout << "[size] = " << s << std::endl;
+    std::cout << '\n';
+
+    std::cout << "[x-affinity]" << std::endl;
+    volume_utils::print_in_matlab_format(xaff);
+    std::cout << "[y-affinity]" << std::endl;
+    volume_utils::print_in_matlab_format(yaff);
+#endif
 
     // merger weight
     std::list<double3d_ptr> mw;
@@ -130,6 +146,19 @@ malis_2d( std::list<double3d_ptr> true_affs,
 
     std::sort(edges.begin(), edges.end(), edge_compare());
 
+#if defined( DEBUG )
+    std::cout << "[# edges] = " << edges.size() << std::endl;
+    std::cout << '\n';
+    long3d_ptr ws_ptr = volume_pool.get_long3d(s[0],s[1],edges.size()+1);
+    long3d&    ws = *ws_ptr;
+
+    std::size_t cnt = 0;
+    for ( std::size_t x = 0; x < s[0]; ++x )
+        for ( std::size_t y = 0; y < s[1]; ++y )
+            ws[x][y][0] = sets.find_set(ids[x][y][0]);
+    ++cnt;
+#endif
+
     // std::size_t incorrect = 0;
     std::size_t nTP = 0;
     std::size_t nFP = 0;
@@ -139,6 +168,10 @@ malis_2d( std::list<double3d_ptr> true_affs,
     // (B,N) or (B,B) pairs where B: boundary, N: non-boundary
     // std::size_t n_b_pairs = 0;
 
+#if defined( DEBUG )
+    long3d_ptr ts = volume_pool.get_long3d(s);
+    volume_utils::zero_out(ts);
+#endif
     FOR_EACH( it, edges )
     {
         uint32_t set1 = sets.find_set(it->get<1>()); // region A
@@ -236,6 +269,21 @@ malis_2d( std::list<double3d_ptr> true_affs,
 
             std::swap(sizes[new_set], sizes[set1]);
             std::swap(contains[new_set], contains[set1]);
+
+#if defined( DEBUG )
+            for ( std::size_t x = 0; x < s[0]; ++x )
+                for ( std::size_t y = 0; y < s[1]; ++y )
+                    ws[x][y][cnt] = sets.find_set(ids[x][y][0]);
+
+            ts->data()[it->get<2>()-1] = cnt;
+
+            ++cnt;
+
+            // std::cout << "[watershed " << cnt << "]" << std::endl;
+            // long3d_ptr slice = volume_pool.get_long3d(s);
+            // *slice = ws[boost::indices[range(0,s[0])][range(0,s[1])][range(cnt-1,cnt)]];
+            // volume_utils::print_in_matlab_format(slice);
+#endif
         }
     }
 
@@ -248,7 +296,12 @@ malis_2d( std::list<double3d_ptr> true_affs,
     metric.nFN  = nFN;
     metric.nTN  = nTN;
 
-    return std::make_pair(malis_weight(mw,sw), metric);
+    malis_weight malisw(mw,sw);
+#if defined( DEBUG )
+    malisw.ws_evolution = ws_ptr;
+    malisw.time_step = ts;
+#endif
+    return std::make_pair(malisw, metric);
 }
 
 

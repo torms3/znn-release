@@ -66,6 +66,11 @@ private:
     {
         volume_utils::save_tensor(w.merger, op_->save_path + ".merger");
         volume_utils::save_tensor(w.splitter, op_->save_path + ".splitter");
+
+#if defined( DEBUG )
+        volume_utils::save(w.ws_evolution, op_->save_path + "evolution");
+        volume_utils::save(w.time_step, op_->save_path + "timestep");
+#endif
     }
 
 
