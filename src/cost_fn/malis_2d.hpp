@@ -39,7 +39,8 @@ namespace znn {
 inline malis_return
 malis_2d( std::list<double3d_ptr> true_affs,
           std::list<double3d_ptr> affs,
-          double margin = 0 )
+          double high = 0.99,
+          double low = 0.3 )
 {
     double loss = 0;
     long3d_ptr seg_ptr = get_segmentation(true_affs);
@@ -131,16 +132,26 @@ malis_2d( std::list<double3d_ptr> true_affs,
         {
             if ( x > 0 )
             {
-                edges.push_back(edge_type((*xaff)[x][y][0], ids[x-1][y][0],
+                double affinity = std::min((*xaff)[x][y][0],high);
+
+                if ( affinity > low)
+                {
+                    edges.push_back(edge_type(affinity, ids[x-1][y][0],
                                           ids[x][y][0], &((*xmw)[x][y][0]),
                                           &((*xsw)[x][y][0])));
+                }
             }
 
             if ( y > 0 )
             {
-                edges.push_back(edge_type((*yaff)[x][y][0], ids[x][y-1][0],
+                double affinity = std::min((*yaff)[x][y][0],high);
+
+                if ( affinity > low )
+                {
+                    edges.push_back(edge_type(affinity, ids[x][y-1][0],
                                           ids[x][y][0], &((*ymw)[x][y][0]),
                                           &((*ysw)[x][y][0])));
+                }
             }
         }
 

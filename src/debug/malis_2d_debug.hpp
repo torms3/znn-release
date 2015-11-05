@@ -14,6 +14,7 @@ namespace znn {
 //      load_path       : path to boundary prediction
 //      data_path       : path to label
 //      save_path       : path to save
+//
 //      outsz           : input volume size
 //
 class malis_2d_debug : virtual public debug
@@ -21,6 +22,9 @@ class malis_2d_debug : virtual public debug
 private:
     std::list<double3d_ptr>     label;
     std::list<double3d_ptr>     affin;
+
+    double high;
+    double low;
 
 
 public:
@@ -30,7 +34,7 @@ public:
 
         zi::wall_timer wt;
         {
-            malis_return mpair = malis_2d(label, affin);
+            malis_return mpair = malis_2d(label, affin, high, low);
 
             std::cout << wt.elapsed<double>() << " secs [malis_2d].\n";
             wt.restart();
@@ -68,15 +72,17 @@ private:
         volume_utils::save_tensor(w.splitter, op_->save_path + ".splitter");
 
 #if defined( DEBUG )
-        volume_utils::save(w.ws_evolution, op_->save_path + "evolution");
-        volume_utils::save(w.time_step, op_->save_path + "timestep");
+        volume_utils::save(w.ws_evolution, op_->save_path + ".evolution");
+        volume_utils::save(w.time_step, op_->save_path + ".timestep");
 #endif
     }
 
 
 public:
-    malis_2d_debug( options_ptr op )
+    malis_2d_debug( options_ptr op, double h, double l )
         : debug(op)
+        , high(h)
+        , low(l)
     {}
 
     virtual ~malis_2d_debug() {}

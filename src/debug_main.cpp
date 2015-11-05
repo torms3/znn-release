@@ -27,6 +27,8 @@
 
 ZiARG_string(options, "", "Option file path");
 ZiARG_string(type, "", "Debug type");
+ZiARG_double(high, 1, "High threshold");
+ZiARG_double(low, 0, "Low threshold");
 
 using namespace zi::znn;
 
@@ -39,7 +41,7 @@ int main(int argc, char** argv)
     debug_ptr dbg;
     if ( ZiARG_type == "malis_2d" )
     {
-        dbg = debug_ptr(new malis_2d_debug(op));
+        dbg = debug_ptr(new malis_2d_debug(op,ZiARG_high,ZiARG_low));
     }
     else if ( ZiARG_type == "get_segmentation" )
     {
