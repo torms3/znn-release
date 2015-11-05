@@ -27,8 +27,8 @@
 
 ZiARG_string(options, "", "Option file path");
 ZiARG_string(type, "", "Debug type");
-ZiARG_double(high, 0.99, "High threshold");
-ZiARG_double(low, 0.3, "Low threshold");
+ZiARG_double(high, 1, "High threshold");
+ZiARG_double(low, 0, "Low threshold");
 
 using namespace zi::znn;
 
