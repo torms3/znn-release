@@ -22,6 +22,9 @@ Compile & clean
 
 If compile is successful, an executalbe named **znn** will be generated under the directory [bin](./bin/).
 
+Usage: 
+* `make debug` 
+* `./bin/debug --options=malis.config --type=malis_2d`
 
 
 Directories
