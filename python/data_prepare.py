@@ -18,17 +18,17 @@ def read_image(pars):
         bdm = bdm[z,:,:]
     else:
         # fake image size
-        fs = 10
+        fs = 30
         bdm = np.ones((fs,fs), dtype='float32')
-        bdm[3,:] = 0.5
-        bdm[3,7] = 0.8
-        bdm[3,3] = 0.2
-        bdm[6,:] = 0.5
-        bdm[6,3] = 0.2
-        bdm[6,7] = 0.8
+#        bdm[7,:] = 0.5
+#        bdm[7,16] = 0.8
+#        bdm[7,7] = 0.2
+        bdm[16,:] = 0.5
+        bdm[16,7] = 0.2
+        bdm[16,16] = 0.8
         lbl = np.zeros((fs,fs), dtype='uint32')
-        lbl[:6, :] = 1
-        lbl[7:, :] = 2
+        lbl[:16, :] = 1
+        lbl[17:, :] = 2
         assert lbl.max()>1
 
     # only a corner for test
