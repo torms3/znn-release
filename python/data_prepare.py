@@ -5,6 +5,10 @@ import time
 import utils
 import matplotlib.pylab as plt
 
+def make_unique_bdm(bdm):
+    bdm -= np.arange(bdm.size).reshape(bdm.shape) * 0.0001
+    return bdm
+
 def read_image(pars):
     z=8
     is_fake = pars['is_fake']
@@ -18,18 +22,21 @@ def read_image(pars):
         bdm = bdm[z,:,:]
     else:
         # fake image size
-        fs = 30
+        fs = 10
         bdm = np.ones((fs,fs), dtype='float32')
-#        bdm[7,:] = 0.5
-#        bdm[7,16] = 0.8
-#        bdm[7,7] = 0.2
-        bdm[16,:] = 0.5
-        bdm[16,7] = 0.2
-        bdm[16,16] = 0.8
+        bdm[3,:] = 0.5
+        bdm[3,7] = 0.8
+        bdm[3,3] = 0.2
+        bdm[7,:] = 0.5
+        bdm[7,3] = 0.2
+        bdm[7,7] = 0.8
         lbl = np.zeros((fs,fs), dtype='uint32')
-        lbl[:16, :] = 1
-        lbl[17:, :] = 2
+        lbl[:7, :] = 1
+        lbl[8:, :] = 2
         assert lbl.max()>1
+
+    # make unique
+    # bdm = make_unique_bdm( bdm )
 
     # only a corner for test
     corner_size = pars['corner_size']
@@ -50,6 +57,8 @@ def read_image(pars):
         from scipy.ndimage.morphology import binary_erosion
         msk = binary_erosion(msk, structure=erosion_structure)
         lbl[msk==False] = 0
+
+    print "boundary map: ", bdm
     return bdm, lbl
 if __name__ == "__main__":
     from malis_test import get_params

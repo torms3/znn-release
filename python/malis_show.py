@@ -30,6 +30,8 @@ def combine2rgb(bdm, w=None):
 
 def disk_plot(e, D, DrTh, color='g'):
     # plot disk to illustrate the weight strength
+    if np.all(e==0):
+        return
     # rescale to 0-1
     re = rescale(e) * D
     y,x = np.nonzero(re)
@@ -45,6 +47,13 @@ def disk_plot(e, D, DrTh, color='g'):
     r = r[ r > DrTh ]
     plt.scatter(x,y,r, c=color, alpha=0.6, linewidths=0)
 
+    # print the maximum value
+    dev = max(x.max(), y.max()) * 0.07
+    plt.annotate("%d" % e.max(), xy=(x[-1],y[-1]),
+                xytext=(x[-1]+dev, y[-1]+dev),
+                color = 'white',
+                arrowprops=dict(color='white',
+                arrowstyle="->"))
 
 def plot( pars, bdm, lbl, me, se, mbdm=None, sbdm=None):
     is_constrained = pars['is_constrained']

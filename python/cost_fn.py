@@ -168,46 +168,6 @@ def softmax_loss2(props, lbls):
 # TO-DO
 
 
-def malis_find(sid, seg):
-    """
-    find the root/segment id
-    """
-    return seg[sid-1]
-
-def malis_union(r1, r2, seg, id_sets):
-    """
-    union the two sets, keep the "tree" update.
-
-    parameters
-    ----------
-    r1, r2 : segment id of two sets
-    seg : 1d array, record the segment id of all the segments
-    id_sets : dict, key is the root/segment id
-                    value is a set of voxel ids.
-
-    returns
-    -------
-    seg :
-    id_sets
-    """
-    # get set pair
-    set1 = id_sets[r1]
-    set2 = id_sets[r2]
-
-    # make sure that set1 is larger than set2
-    if len(set1) < len(set2):
-        r1, r2 = r2, r1
-        set1, set2 = set2, set1
-    # merge the small set to big set
-    id_sets[r1]= set1.union( set2 )
-    # update the segmentation
-    for vid in set2:
-        seg[vid-1] = r1
-    # remove the small set in dict
-    del id_sets[r2]
-    return seg, id_sets
-
-# TO-DO, not fully implemented
 def malis_weight_aff(affs, true_affs, threshold=0.5):
     """
     compute malis tree_size
@@ -260,165 +220,36 @@ def malis_weight_aff(affs, true_affs, threshold=0.5):
     edges.sort(reverse=True)
 
     # find the maximum-spanning tree based on union-find algorithm
-    weights = np.zeros( affs.shape, dtype=affs.dtype )
-    # the dict set containing all the sets
-    id_sets = dict()
-    # initialize the id sets
-    for i in xrange(1,N+1):
-        id_sets[i] = i
+    merr = np.zeros( affs.size, dtype=affs.dtype )
+    serr = np.zeros( affs.size, dtype=affs.dtype )
 
-    # accumulate the merge and split errors
-    #merr = serr = 0
+    # initialize the watershed domains
+    dms = emirt.domains.CDomains( tseg )
 
     # union find the sets
     for e in edges:
-        # find the segment/root id
-        r1 = malis_find(e[1], seg)
-        r2 = malis_find(e[2], seg)
+        # voxel ids
+        vid1 = e[1]
+        vid2 = e[2]
+        # union the domains
+        me, se = dms.union( vid1, vid2 )
 
-        if r1==r2:
-            # this is not a maximin edge
-            continue
+        # deal with the maiximin edge
+        # accumulate the merging error
+        merr += me
+        serr += se
 
-        if e[0]>threshold:
-            # merge two sets, the voxel pairs not in a segments are errors
-            #weights[e[3], r1-1] = weights[e[3],r1-1] + s1*s2
-            # merge the two sets/trees
-            pass
+    # reshape the error
+    merr = merr.reshape(affs.shape)
+    serr = serr.reshape(affs.shape)
 
-        else:
-        # do not merge, the voxel pairs in a same segments are errors
-            print "dp "
+    # combine the two error weights
+    w = (merr + serr)
+    return w
 
 
-    # normalize the weights
-    #N = float(N)
-    #weights = weights * (3*N) / ( N*(N-1)/2 )
-    #weights = weights.reshape( affs.shape )
-    # transform to dictionary
-    ret = dict()
-    #ret[key] = weights
-    return ret
-
-class CDomain:
-    def __init__(self, lid=None, vid=None ):
-        """
-        lid: label id
-        vid: voxel id
-        """
-        import numbers
-        # a dictionary containing voxel number of different segment id
-        self.sizes = dict()
-        # a dictionary containing voxel sets
-        self.sets = dict()
-        if isinstance(lid, numbers.Number) and \
-           isinstance(vid, numbers.Number):
-            self.sizes[lid] = 1
-            self.sets[lid]  = {vid}
-
-    def union(self, dm2 ):
-        """
-        merge with another domain
-        dm2: CDomain, another domain
-        """
-        for lid2, sz2 in dm2.sizes.iteritems():
-            set2 = dm2.sets[lid2]
-            if self.sizes.has_key(lid2):
-                # have common segment id, merge together
-                self.sizes[lid2] += sz2
-                self.sets[lid2] = self.sets[lid2].union( set2 )
-            else:
-                # do not have common id, create new one
-                self.sizes[lid2] = sz2
-                self.sets[lid2] = set2
-
-    def clear(self):
-        """
-        delete all the containt
-        """
-        self.sizes = dict()
-        self.sets = dict()
-        return
-
-    def find( self, vid ):
-        """
-        find whether this voxel is in this domain
-        """
-        for s in self.sets.values():
-            if vid in s:
-                return True
-        return False
-
-    def get_merge_split_errors(self, dm2):
-        """
-        compute the merge and split error of two domains
-        """
-        # merging and splitting error
-        me = 0
-        se = 0
-        for lid1, sz1 in self.sizes.iteritems():
-            for lid2, sz2 in dm2.sizes.iteritems():
-                # ignore the boundaries
-                if lid1>0 and lid2>0:
-                    if lid1==lid2:
-                        # they should be merged together
-                        # this is a split error
-                        se += sz1 * sz2
-                    else:
-                        # they should be splitted
-                        # this is a merging error
-                        me += sz1 * sz2
-        return me, se
-
-class CDomains:
-    """
-    the list of watershed domains.
-    """
-    def __init__( self, lbl ):
-        """
-        Parameters
-        ----------
-        lbl: 2D/3D array, manual label image
-        """
-        assert(lbl.ndim==2 or lbl.ndim==3)
-        self.dms = list()
-        # voxel id start from 0
-        for vid in xrange( lbl.size ):
-            # manual labeled segment id
-            lid = lbl.flat[vid]
-            self.dms.append( CDomain(lid, vid) )
-        return
-
-    def find( self, vid ):
-        """
-        find the corresponding domain of a voxel
-        vid: voxel ID
-        Return
-        ------
-        dm: corresponding watershed domain
-        """
-        for i, dm in enumerate( self.dms ):
-            if dm.find(vid):
-                return i, dm
-        raise NameError("the voxel id was not found!")
-
-    def union(self, vid1, vid2):
-        """
-        union the two watershed domain of two voxel ids
-        """
-        # domain id and domain
-        dmid1, dm1 = self.find(vid1)
-        dmid2, dm2 = self.find(vid2)
-        if dmid1 != dmid2:
-            # they are in different domains
-            me, se = dm1.get_merge_split_errors( dm2 )
-            # merge these two domains
-            dm1.union(dm2)
-            self.dms[dmid1] = dm1
-            self.dms.pop(dmid2)
-            return me, se
-        else:
-            return 0,0
+def malis_weight_aff_2D( bdm, lbl, threshold=0.5 ):
+    return
 
 def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     """
@@ -479,7 +310,7 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     serr = np.zeros(bdm.size, dtype=bdm.dtype)
 
     # initalize the watershed domains
-    dms = CDomains( lbl )
+    dms = emirt.domains.CDomains( lbl )
 
     # find the maximum spanning tree based on union-find algorithm
     for e in edges:
@@ -495,11 +326,7 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
         # accumulate the spliting error
         serr[vid1] += se
 
-    # normalize the weight
-    merr *= merr.size*0.5 / np.sum(merr, dtype=bdm.dtype)
-    serr *= serr.size*0.5 / np.sum(serr, dtype=bdm.dtype)
     # reshape the err
-
     merr = merr.reshape(bdm.shape)
     serr = serr.reshape(bdm.shape)
     # combine the two error weights
